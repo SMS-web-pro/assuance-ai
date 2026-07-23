@@ -372,6 +372,7 @@ export type Database = {
         Row: {
           adresse_complete: string | null
           code_postal: string | null
+          consentement_rgpd: Json | null
           conseiller_assigne: string | null
           date_contact: string | null
           date_creation: string
@@ -391,6 +392,7 @@ export type Database = {
         Insert: {
           adresse_complete?: string | null
           code_postal?: string | null
+          consentement_rgpd?: Json | null
           conseiller_assigne?: string | null
           date_contact?: string | null
           date_creation?: string
@@ -410,6 +412,7 @@ export type Database = {
         Update: {
           adresse_complete?: string | null
           code_postal?: string | null
+          consentement_rgpd?: Json | null
           conseiller_assigne?: string | null
           date_contact?: string | null
           date_creation?: string

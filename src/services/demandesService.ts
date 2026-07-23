@@ -3,6 +3,16 @@ import { supabase } from '@/integrations/supabase/client';
 
 export type TypeAssurance = 'auto' | 'habitation' | 'sante' | 'moto' | 'emprunteur' | 'voyage';
 
+export interface ConsentementRGPD {
+  consentement: boolean;
+  preuve: {
+    date: string;
+    message_consentement: string;
+    mention_rgpd_affichee: boolean;
+    ip?: string | null;
+  };
+}
+
 export interface DemandeAssuranceData {
   nom?: string;
   prenom?: string;
@@ -11,6 +21,7 @@ export interface DemandeAssuranceData {
   date_naissance?: string;
   adresse_complete?: string;
   code_postal?: string;
+  consentement_rgpd?: ConsentementRGPD;
   [key: string]: any;
 }
 
@@ -34,7 +45,8 @@ export const saveDemandeAssurance = async (
         adresse_complete: data.adresse_complete,
         code_postal: data.code_postal,
         statut: 'nouveau',
-        priorite: 'normale'
+        priorite: 'normale',
+        consentement_rgpd: data.consentement_rgpd || null
       })
       .select()
       .single();

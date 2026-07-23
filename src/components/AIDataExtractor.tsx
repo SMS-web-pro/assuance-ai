@@ -28,6 +28,68 @@ const AIDataExtractor = ({ messages, insuranceType, onSaveSuccess }: AIDataExtra
     'Pierre Delacroix', 'Camille Durand', 'Dr. Claire Rousseau'
   ];
 
+  // Fonction pour détecter le consentement RGPD (utilisateur répond "OUI" après mention RGPD)
+  const detectRGPDConsent = (messages: Array<{ role: string; content: string }>): { consentement: boolean; preuve: any } | null => {
+    // Chercher si un message assistant contient la mention RGPD
+    const rgpdMentionIndex = messages.findIndex(m => 
+      m.role === 'assistant' && 
+      (m.content.includes('démarchage téléphonique') || 
+       m.content.includes('RGPD') || 
+       m.content.includes('Loi Cazenave') ||
+       m.content.includes('consentement'))
+    );
+
+    if (rgpdMentionIndex === -1) return null;
+
+    // Chercher la réponse de l'utilisateur APRÈS la mention RGPD
+    const subsequentMessages = messages.slice(rgpdMentionIndex + 1);
+    const userResponse = subsequentMessages.find(m => m.role === 'user');
+
+    if (!userResponse) return null;
+
+    const response = userResponse.content.toLowerCase().trim();
+    const consentPatterns = [
+      /^oui$/i,
+      /^j'accepte$/i,
+      /^j'accepte$/i,
+      /^c'est accepté$/i,
+      /^validé$/i,
+      /^valide$/i,
+      /^pourquoi pas$/i,
+      /^ok$/i,
+      /^d'accord$/i,
+      /^oui je confirme$/i,
+      /^oui,? je suis d'accord$/i,
+      /^oui,? c'est bon$/i
+    ];
+
+    const hasConsent = consentPatterns.some(pattern => pattern.test(response));
+
+    if (hasConsent) {
+      return {
+        consentement: true,
+        preuve: {
+          date: new Date().toISOString(),
+          message_consentement: userResponse.content,
+          mention_rgpd_affichee: true
+        }
+      };
+    }
+
+    return null;
+  };
+
+  // Fonction pour obtenir l'IP de l'utilisateur (via API publique)
+  const getUserIP = async (): Promise<string | null> => {
+    try {
+      const response = await fetch('https://api.ipify.org?format=json');
+      const data = await response.json();
+      return data.ip || null;
+    } catch {
+      return null;
+    }
+  };
+
   // Fonction pour convertir une date française en format ISO
   const convertFrenchDateToISO = (frenchDate: string): string | null => {
     try {
@@ -388,6 +450,13 @@ const AIDataExtractor = ({ messages, insuranceType, onSaveSuccess }: AIDataExtra
       }
     }
 
+    // Extraction du consentement RGPD
+    const rgpdConsent = detectRGPDConsent(messages);
+    if (rgpdConsent) {
+      extractedData.consentement_rgpd = rgpdConsent;
+      console.log(`🔒 Consentement RGPD détecté:`, rgpdConsent);
+    }
+
     console.log('📋 Toutes les données extraites:', extractedData);
     return extractedData;
   };
@@ -432,6 +501,14 @@ const AIDataExtractor = ({ messages, insuranceType, onSaveSuccess }: AIDataExtra
         setTimeout(async () => {
           console.log('💾 Sauvegarde des données extraites...');
           try {
+            // Récupérer l'IP de l'utilisateur pour la preuve RGPD
+            if (allData.consentement_rgpd) {
+              const userIP = await getUserIP();
+              if (userIP) {
+                allData.consentement_rgpd.preuve.ip = userIP;
+              }
+            }
+
             const success = await saveCollectedData(allData);
             if (success) {
               console.log('✅ Sauvegarde réussie!');
