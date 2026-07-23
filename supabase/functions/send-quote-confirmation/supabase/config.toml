@@ -1,0 +1,21 @@
+[functions]
+  [functions.send-quote-confirmation]
+  # Enable the function
+  enabled = true
+  
+  # Set the function timeout (in seconds)
+  timeout = 30
+  
+  # Set the memory limit (in MB)
+  memory = 256
+  
+  # Environment variables
+  [functions.send-quote-confirmation.environment]
+  SUPABASE_URL = ""
+  SUPABASE_SERVICE_ROLE_KEY = ""
+  
+  # CORS configuration
+  [functions.send-quote-confirmation.cors]
+  allow_origins = ["*"]
+  allow_methods = ["POST", "OPTIONS"]
+  allow_headers = ["authorization", "x-client-info", "apikey", "content-type"]

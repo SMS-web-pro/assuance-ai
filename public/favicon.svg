@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Rounded square background -->
+  <rect width="64" height="64" rx="12" fill="#0f172a" />
+  <!-- File icon inspired by lucide "file-text" -->
+  <path d="M40 8H20a4 4 0 0 0-4 4v40a4 4 0 0 0 4 4h24a4 4 0 0 0 4-4V20L40 8z" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+  <polyline points="40 8 40 20 52 20" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+  <line x1="28" y1="28" x2="24" y2="28" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+  <line x1="40" y1="36" x2="24" y2="36" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+  <line x1="40" y1="44" x2="24" y2="44" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+</svg>

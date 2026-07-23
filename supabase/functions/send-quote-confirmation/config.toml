@@ -1,0 +1,51 @@
+# Configuration for the send-quote-confirmation Edge Function
+
+[functions]
+# Function name as it will appear in the Supabase Dashboard
+name = "send-quote-confirmation"
+# Runtime (nodejs16 is required for nodemailer)
+runtime = "nodejs16"
+# Memory allocation (in MB)
+memory = 1024
+# Timeout in seconds
+timeout = 30
+# Region (optional, will use project default if not specified)
+# region = "us-east-1"
+
+# Environment variables (these will be set in Supabase Dashboard)
+[env]
+# Required: Supabase project URL and service role key
+# These will be automatically injected by Supabase at runtime
+SUPABASE_URL = ""
+SUPABASE_SERVICE_ROLE_KEY = ""
+
+# SMTP configuration (will be overridden by values from smtp_configs table)
+# These are just defaults in case the table is empty
+SMTP_HOST = "smtp.example.com"
+SMTP_PORT = "587"
+SMTP_USER = "your-email@example.com"
+SMTP_PASS = "your-password"
+SMTP_FROM = "noreply@yourdomain.com"
+SMTP_FROM_NAME = "AssurConnect"
+
+# CORS settings
+[cors]
+# Allow all origins for development
+allow_origins = ["*"]
+allow_methods = ["POST", "OPTIONS"]
+allow_headers = ["authorization", "x-client-info", "apikey", "content-type"]
+max_age = 86400
+
+# Logging
+[logging]
+# Log level (debug, info, warn, error)
+level = "info"
+# Whether to include request/response bodies in logs
+include_request_body = false
+include_response_body = false
+
+# Rate limiting (requests per minute per IP)
+[rate_limiting]
+enabled = true
+requests = 60
+per_seconds = 60

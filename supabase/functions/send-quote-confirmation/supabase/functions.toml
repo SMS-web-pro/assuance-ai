@@ -1,0 +1,26 @@
+[functions.send-quote-confirmation]
+enable_jwt = true
+
+# Configuration CORS
+cors_allow_origins = ["*"]
+cors_allow_headers = ["authorization", "x-client-info", "apikey", "content-type"]
+
+# Configuration des variables d'environnement
+[functions.send-quote-confirmation.env]
+# Ces variables seront remplacées par les valeurs de l'environnement Supabase
+SUPABASE_URL = ""
+SUPABASE_SERVICE_ROLE_KEY = ""
+
+# Configuration des règles de sécurité
+[functions.send-quote-confirmation.security]
+# Autoriser uniquement les requêtes authentifiées
+allow_unauthenticated = false
+
+# Configuration du déploiement
+[functions.send-quote-confirmation.deployment]
+# Taille de la mémoire allouée (en Mo)
+memory = 256
+# Délai d'expiration (en secondes)
+timeout = 30
+# Région de déploiement
+region = "eu-central-1"
