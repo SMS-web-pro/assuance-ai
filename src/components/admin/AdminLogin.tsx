@@ -42,7 +42,7 @@ const AdminLogin = () => {
       console.log('Authentification réussie, vérification des droits admin...');
 
       // Vérifier si l'utilisateur est admin (email spécifique ou rôle)
-      const adminEmails = ['admin@assuranceia.com', 'admin@example.com', 'sahabyoussef@gmail.com', 'demo.admin@gmail.com'];
+      const adminEmails = ['admin@assur.com', 'admin@assuranceia.com', 'admin@example.com', 'sahabyoussef@gmail.com', 'demo.admin@gmail.com'];
       const isAdmin = adminEmails.includes(email.trim().toLowerCase());
 
       if (!isAdmin) {

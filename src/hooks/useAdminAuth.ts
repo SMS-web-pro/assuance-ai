@@ -65,7 +65,7 @@ export const useAdminAuth = () => {
       const parsedSession: AdminSession = JSON.parse(adminSessionData);
       
       // Vérifier que l'email correspond à un admin autorisé
-      const adminEmails = ['admin@assuranceia.com', 'admin@example.com', 'sahabyoussef@gmail.com', 'demo.admin@gmail.com'];
+      const adminEmails = ['admin@assur.com', 'admin@assuranceia.com', 'admin@example.com', 'sahabyoussef@gmail.com', 'demo.admin@gmail.com'];
       const isValidAdmin = adminEmails.includes(session.user.email?.toLowerCase() || '');
 
       if (!isValidAdmin) {
