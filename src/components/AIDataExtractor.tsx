@@ -28,6 +28,9 @@ const AIDataExtractor = ({ messages, insuranceType, onSaveSuccess }: AIDataExtra
     'Pierre Delacroix', 'Camille Durand', 'Dr. Claire Rousseau'
   ];
 
+  // Liste des titres à ignorer dans l'extraction du nom
+  const titlesToIgnore = ['monsieur', 'madame', 'mademoiselle', 'm.', 'mme', 'mlle', 'dr', 'docteur', 'pr', 'professeur'];
+
   // Fonction pour détecter le consentement RGPD (utilisateur répond "OUI" après mention RGPD)
   const detectRGPDConsent = (messages: Array<{ role: string; content: string }>): { consentement: boolean; preuve: any } | null => {
     // Chercher si un message assistant contient la mention RGPD
@@ -133,6 +136,8 @@ const AIDataExtractor = ({ messages, insuranceType, onSaveSuccess }: AIDataExtra
       /(?:je\s+m'appelle|je\s+suis|bonjour,?\s*(?:je\s+suis\s*)?)\s+([A-Za-zÀ-ÿ\-']+)\s+([A-Za-zÀ-ÿ\-']+)/i,
       // Pattern pour "Mon nom est Prénom Nom"
       /mon\s+nom\s+(?:est|c'est)\s+([A-Za-zÀ-ÿ\-']+)\s+([A-Za-zÀ-ÿ\-']+)/i,
+      // Pattern pour "Monsieur/Madame Prénom Nom"
+      /(?:monsieur|madame|mademoiselle|m\.|mme|mlle)\s+([A-Za-zÀ-ÿ\-']+)\s+([A-Za-zÀ-ÿ\-']+)/i,
       // Pattern général pour deux mots consécutifs qui pourraient être un nom
       /\b([A-Za-zÀ-ÿ\-']+)\s+([A-Za-zÀ-ÿ\-']+)\b/g
     ];
@@ -150,10 +155,26 @@ const AIDataExtractor = ({ messages, insuranceType, onSaveSuccess }: AIDataExtra
       
       for (const match of matches) {
         if (match && match.length >= 3) {
-          const premierMot = match[1]?.trim();
-          const deuxiemeMot = match[2]?.trim();
+          let premierMot = match[1]?.trim();
+          let deuxiemeMot = match[2]?.trim();
+          
+          // Ignorer les titres
+          if (titlesToIgnore.includes(premierMot.toLowerCase())) {
+            // Si le premier mot est un titre, le deuxième mot est le prénom
+            // Chercher le troisième mot pour le nom
+            const afterTitle = userMessages.match(new RegExp(`(?:monsieur|madame|mademoiselle|m\\.|mme|mlle)\\s+${premierMot}\\s+${deuxiemeMot}\\s+([A-Za-zÀ-ÿ\\-']+)`, 'i'));
+            if (afterTitle && afterTitle[1]) {
+              premierMot = deuxiemeMot;
+              deuxiemeMot = afterTitle[1];
+            }
+          }
           
           if (premierMot && deuxiemeMot && premierMot !== deuxiemeMot) {
+            // Vérifier que ce n'est pas un titre
+            if (titlesToIgnore.includes(premierMot.toLowerCase()) || titlesToIgnore.includes(deuxiemeMot.toLowerCase())) {
+              continue;
+            }
+            
             // Vérifier que ce n'est pas un nom de conseiller virtuel
             const fullName = `${premierMot} ${deuxiemeMot}`;
             const isVirtualConsultant = virtualConseillers.some(consultant => 

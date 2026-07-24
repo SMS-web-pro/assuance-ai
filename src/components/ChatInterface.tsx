@@ -545,80 +545,17 @@ Merci de votre confiance et à très bientôt ! 🎯"
 
     console.log('Message utilisateur reçu:', input);
 
-    // Vérifier si c'est une confirmation (maintenant utilisé uniquement pour la réponse de l'assistant)
-    const isConfirmation = input.toLowerCase().includes('oui') || 
-      input.toLowerCase().includes('confirmer') ||
-      input.toLowerCase().startsWith('confirmer') ||
-      input.toLowerCase().startsWith('je confirme');
-
-    // Si c'est une confirmation, on répond simplement à l'utilisateur
-    // L'email sera envoyé automatiquement après la sauvegarde
-    if (isConfirmation) {
-      setMessages(prev => [...prev, { 
-        role: "assistant", 
-        content: "✅ Parfait ! Je vais enregistrer votre demande et vous enverrai une confirmation par email." 
-      }]);
-      setIsLoading(false);
-      return;
-    }
+    // NOTE: Les confirmations ("oui", "confirmer", "valider") ne sont PLUS interceptées ici.
+    // Elles sont envoyées à l'IA qui gère le flux RGPD et la collecte du téléphone
+    // via le system prompt (Étapes 6, 7, 8).
 
     console.log('Sending message to chat function...', { 
       insuranceType, 
       messageCount: messages.length + 1,
-      isConfirmation
+      isConfirmation: false
     });
 
     try {
-      // Si c'est une confirmation, envoyer l'email avant de continuer
-      if (input.toLowerCase().includes('confirmer') || input.toLowerCase().includes('valider')) {
-        console.log('Détection d\'une confirmation, extraction des données client...');
-        const clientEmail = extractClientEmailFromMessages();
-        const clientName = extractClientNameFromMessages();
-        
-        if (clientEmail) {
-          console.log('Email client extrait:', clientEmail);
-          console.log('Nom client extrait:', clientName);
-          
-          try {
-            // Suivi de la soumission de la demande
-            trackNewAIDemand(insuranceType, {
-              email: clientEmail,
-              name: clientName,
-              demand_id: currentDemandeId || 'new_demand_'+Date.now()
-            });
-            
-            console.log('Tentative d\'envoi de l\'email de confirmation à:', clientEmail);
-            const emailSent = await sendConfirmationEmail(clientEmail, clientName);
-            
-            if (emailSent) {
-              console.log('Email de confirmation envoyé avec succès à:', clientEmail);
-              toast.success('Email de confirmation envoyé avec succès');
-              
-              // Mettre à jour le statut de la demande si nécessaire
-              if (currentDemandeId) {
-                console.log('Mise à jour du statut de la demande:', currentDemandeId);
-                await updateDemandeStatus(currentDemandeId, 'email_envoye');
-                
-                // Suivi de l'envoi de l'email de confirmation
-                trackAIAgentInteraction('email_confirmation_sent', {
-                  demand_id: currentDemandeId,
-                  insurance_type: insuranceType
-                });
-              }
-            } else {
-              console.warn('L\'envoi de l\'email a échoué sans erreur');
-              toast.warning('L\'envoi de l\'email a échoué');
-            }
-          } catch (error) {
-            console.error('Erreur lors de l\'envoi de l\'email de confirmation:', error);
-            toast.error(`Erreur lors de l'envoi de l'email: ${error.message}`);
-          }
-        } else {
-          console.log('Aucun email client trouvé dans les messages');
-          toast.warning('Aucune adresse email trouvée pour l\'envoi de la confirmation');
-        }
-      }
-
       const { data, error } = await supabase.functions.invoke('chat', {
         body: {
           messages: [
