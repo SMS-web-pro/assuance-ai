@@ -34,7 +34,7 @@ export const useInsuranceDataCollection = (insuranceType: TypeAssurance) => {
 
     if (!dataToSave.telephone) {
       console.error('❌ Téléphone manquant');
-      toast.error("Numéro de téléphone manquant");
+      toast.error("Numéro de téléphone manquant. Le rappel est nécessaire pour finaliser votre demande.");
       return false;
     }
 

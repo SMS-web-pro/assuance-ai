@@ -288,14 +288,14 @@ const AIDataExtractor = ({ messages, insuranceType, onSaveSuccess }: AIDataExtra
     if (mappedType === 'auto') {
       // Marque du véhicule
       const marquePatterns = [
-        /(?:marque|véhicule|voiture)[:\s]*([A-Za-zÀ-ÿ]+)/i,
-        /(?:j'ai|c'est)\s+une?\s+([A-Za-zÀ-ÿ]+)/i,
-        /([A-Za-zÀ-ÿ]+)\s+[0-9]{3}/i // Pattern pour "Peugeot 308"
+        /(?:marque|véhicule|voiture|auto)\s*(?:est|du)?\s*[:\s]*([A-Za-zÀ-ÿ]+)/i,
+        /(?:j'ai|c'est|conduit|roule)\s+une?\s+([A-Za-zÀ-ÿ]+)/i,
+        /\b(Honda|Toyota|Peugeot|Renault|Citroën|Citroen|BMW|Mercedes|Audi|Volkswagen|Vw|Ford|Opel|Nissan|Hyundai|Kia|Mazda|Suzuki|Fiat|Seat|Skoda|Dacia|Tesla|Porsche|Volvo|Subaru|Mitsubishi|SsangYong|Alfa|Romeo|Jeep|Land\s*Rover|Mini|Smart|DS|Cupra)\b/i
       ];
 
       for (const pattern of marquePatterns) {
         const match = userMessages.match(pattern);
-        if (match && match[1] && !['une', 'le', 'la', 'mon', 'ma'].includes(match[1].toLowerCase())) {
+        if (match && match[1] && !['une', 'le', 'la', 'mon', 'ma', 'est', 'du'].includes(match[1].toLowerCase())) {
           extractedData.marque_vehicule = match[1].trim();
           console.log(`🚗 Marque trouvée: ${extractedData.marque_vehicule}`);
           break;
@@ -304,17 +304,23 @@ const AIDataExtractor = ({ messages, insuranceType, onSaveSuccess }: AIDataExtra
 
       // Modèle du véhicule
       const modelePatterns = [
-        /(?:modèle|modele|model)[:\s]*([A-Za-zÀ-ÿ0-9\s]+?)(?:\s|,|\.|$)/i,
-        /[A-Za-zÀ-ÿ]+\s+([0-9]{3})/i, // Pattern pour "Peugeot 308"
-        /([0-9]{3})\s+/i
+        /(?:modèle|modele|model)\s*(?:est|du)?\s*[:\s]*([A-Za-zÀ-ÿ0-9\s]+?)(?:\s*[,.]|\s+(?:de|pour|essence|diesel|ann|année)|\s*$)/i,
+        // Pattern pour "honda jazz" (marque suivie du modèle)
+        new RegExp(`(?:${extractedData.marque_vehicule || 'XXX'})\\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ0-9\\s]*?)(?:\\s+(?:essence|diesel|électrique|hybride|de|pour|ann|année|model|modèle|\\d{4})|$)`, 'i'),
+        // Pattern pour modèle avec chiffres ex: "308", "Clio", "Golf"
+        /\b(Clio|Megane|Captur|Golf|Polo|308|3008|208|2008|C3|C5|Yaris|Corolla|Ibiza|Leon|Octavia|Superb|Sandero|Duster|Model|Jazz|Civic|Corse|I20|Tucson|Kadjar|Koleos|Qashqai|Juke|Astra|Corsa|Fabia|Rapid)\b/i
       ];
 
       for (const pattern of modelePatterns) {
         const match = userMessages.match(pattern);
         if (match && match[1]) {
-          extractedData.modele_vehicule = match[1].trim();
-          console.log(`🚗 Modèle trouvé: ${extractedData.modele_vehicule}`);
-          break;
+          const modele = match[1].trim();
+          // Ignorer les mots courants qui ne sont pas des modèles
+          if (!['une', 'le', 'la', 'mon', 'ma', 'est', 'du', 'model', 'modèle'].includes(modele.toLowerCase())) {
+            extractedData.modele_vehicule = modele;
+            console.log(`🚗 Modèle trouvé: ${extractedData.modele_vehicule}`);
+            break;
+          }
         }
       }
 
