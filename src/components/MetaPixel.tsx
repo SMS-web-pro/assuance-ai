@@ -29,9 +29,16 @@ export const trackEvent = (eventName: string, eventData: Record<string, any> = {
     return false;
   }
 
+  // Standard Facebook Pixel events
+  const standardEvents = ['PageView', 'ViewContent', 'Lead', 'CompleteRegistration', 'AddToCart', 'InitiateCheckout', 'AddPaymentInfo', 'Purchase', 'Search'];
+
   try {
     console.log(`[Pixel] Envoi de l'événement: ${eventName}`, eventWithTimestamp);
-    window.fbq('track', eventName, eventWithTimestamp);
+    if (standardEvents.includes(eventName)) {
+      window.fbq('track', eventName, eventWithTimestamp);
+    } else {
+      window.fbq('trackCustom', eventName, eventWithTimestamp);
+    }
     return true;
   } catch (error) {
     console.error(`[Pixel] Erreur lors de l'envoi de l'événement ${eventName}:`, error);
@@ -48,7 +55,12 @@ const processPendingEvents = () => {
   while (pendingEvents.length > 0) {
     const [eventName, eventData] = pendingEvents.shift()!;
     try {
-      window.fbq('track', eventName, eventData);
+      const standardEvents = ['PageView', 'ViewContent', 'Lead', 'CompleteRegistration', 'AddToCart', 'InitiateCheckout', 'AddPaymentInfo', 'Purchase', 'Search'];
+      if (standardEvents.includes(eventName)) {
+        window.fbq('track', eventName, eventData);
+      } else {
+        window.fbq('trackCustom', eventName, eventData);
+      }
       console.log(`[Pixel] Événement en attente traité: ${eventName}`);
     } catch (error) {
       console.error(`[Pixel] Erreur lors du traitement de l'événement en attente ${eventName}:`, error);
