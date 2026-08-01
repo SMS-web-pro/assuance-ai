@@ -211,35 +211,40 @@ export const useNativeSpeechVoice = ({
   const splitIntoNaturalChunks = useCallback((text: string): Array<{ text: string; pauseAfter: number }> => {
     const chunks: Array<{ text: string; pauseAfter: number }> = [];
     
-    // Découper d'abord par lignes (paragraphes)
     const paragraphs = text.split(/\n+/).filter(p => p.trim().length > 0);
     
     for (const paragraph of paragraphs) {
-      // Découper chaque paragraphe par phrases
       const sentences = paragraph.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 2);
       
       for (const sentence of sentences) {
-        // Découper les longues phrases par virgules
         if (sentence.length > 80) {
           const parts = sentence.split(/,\s*/);
           for (let i = 0; i < parts.length; i++) {
             const part = parts[i].trim();
             if (part.length > 2) {
               const isLast = i === parts.length - 1;
-              const pauseAfter = isLast ? 
-                (sentence.endsWith('.') ? 500 : sentence.endsWith('!') || sentence.endsWith('?') ? 550 : 300) :
-                250; // Pause virgule
+              let pauseAfter = 100; // Virgule par défaut
+              
+              if (isLast) {
+                if (sentence.endsWith('.')) pauseAfter = 250;
+                else if (sentence.endsWith('!')) pauseAfter = 250;
+                else if (sentence.endsWith('?')) pauseAfter = 250;
+                else pauseAfter = 200;
+              }
+              
               chunks.push({ text: part, pauseAfter });
             }
           }
         } else {
-          // Phrase courte : pause selon ponctuation finale
-          let pauseAfter = 300; // Défaut
-          if (sentence.endsWith('.')) pauseAfter = 500;
-          else if (sentence.endsWith('!')) pauseAfter = 550;
-          else if (sentence.endsWith('?')) pauseAfter = 550;
-          else if (sentence.endsWith(':')) pauseAfter = 350;
-          else if (sentence.endsWith(';')) pauseAfter = 300;
+          let pauseAfter = 250; // Défaut = point
+          if (sentence.endsWith('.')) pauseAfter = 250;
+          else if (sentence.endsWith('!')) pauseAfter = 250;
+          else if (sentence.endsWith('?')) pauseAfter = 250;
+          else if (sentence.endsWith(':')) pauseAfter = 200;
+          else if (sentence.endsWith(';')) pauseAfter = 150;
+          
+          // Bonus respiration pour phrases longues
+          if (sentence.length > 80) pauseAfter += 100;
           
           chunks.push({ text: sentence, pauseAfter });
         }
@@ -249,23 +254,22 @@ export const useNativeSpeechVoice = ({
     return chunks;
   }, []);
 
-  // Configuration vocale par agent avec différenciation maximale homme/femme
+  // Configuration vocale par agent avec différenciation homme/femme
   const getAgentVoiceConfig = useCallback((agentName: string, gender: 'male' | 'female') => {
-    // Configurations extrêmes pour maximiser la différence
     const configs: Record<string, { rate: number; pitch: number; volume: number }> = {
-      // HOMMES : voix graves, lentes, posées
-      'Marc Dubois':      { rate: 0.75, pitch: 0.65, volume: 0.95 },
-      'Alex Moreau':      { rate: 0.80, pitch: 0.70, volume: 0.96 },
-      'Pierre Delacroix': { rate: 0.72, pitch: 0.60, volume: 0.94 },
+      // HOMMES : voix graves
+      'Marc Dubois':      { rate: 0.87, pitch: 0.65, volume: 0.95 },
+      'Alex Moreau':      { rate: 0.90, pitch: 0.70, volume: 0.96 },
+      'Pierre Delacroix': { rate: 0.85, pitch: 0.60, volume: 0.94 },
       
-      // FEMMES : voix aigües, plus rapides, chaleureuses
+      // FEMMES : voix aigües
       'Sophie Martin':      { rate: 0.88, pitch: 1.35, volume: 0.94 },
-      'Dr. Claire Rousseau': { rate: 0.85, pitch: 1.30, volume: 0.93 },
+      'Dr. Claire Rousseau': { rate: 0.86, pitch: 1.30, volume: 0.93 },
       'Camille Durand':     { rate: 0.90, pitch: 1.40, volume: 0.95 }
     };
 
     return configs[agentName] || (gender === 'male' 
-      ? { rate: 0.78, pitch: 0.65, volume: 0.95 }
+      ? { rate: 0.87, pitch: 0.65, volume: 0.95 }
       : { rate: 0.88, pitch: 1.35, volume: 0.94 }
     );
   }, []);
@@ -280,35 +284,35 @@ export const useNativeSpeechVoice = ({
 
     // Joie / enthousiasme
     if (/(?:merci|parfait|excellent|super|génial|formidable|bravo|content|ravi)/.test(lower)) {
-      rateMod *= 1.08;
-      pitchMod *= 1.10;
-      volumeMod *= 1.03;
+      rateMod *= 1.15;
+      pitchMod *= 1.13;
+      volumeMod *= 1.05;
     }
 
     // Inquiétude / problème
     if (/(?:problème|soucis|difficile|compliqué|inquiet|grave|attention|risque)/.test(lower)) {
-      rateMod *= 0.88;
-      pitchMod *= 0.92;
-      volumeMod *= 0.95;
+      rateMod *= 0.82;
+      pitchMod *= 0.87;
+      volumeMod *= 0.92;
     }
 
     // Urgence
     if (/(?:urgent|rapidement|vite|immédiatement|crucial|dès que possible)/.test(lower)) {
-      rateMod *= 1.10;
-      pitchMod *= 1.03;
+      rateMod *= 1.18;
+      pitchMod *= 1.08;
     }
 
     // Expertise / sérieux
     if (/(?:technique|spécialisé|professionnel|expert|précisément|conformément|réglementation)/.test(lower)) {
-      rateMod *= 0.90;
-      pitchMod *= 0.97;
+      rateMod *= 0.82;
+      pitchMod *= 0.92;
     }
 
     // Empathie / chaleur
     if (/(?:comprends|accompagne|soutien|aide|écoute|accompagner|vous accompagne)/.test(lower)) {
-      rateMod *= 0.92;
-      pitchMod *= 1.05;
-      volumeMod *= 0.97;
+      rateMod *= 0.80;
+      pitchMod *= 1.10;
+      volumeMod *= 0.90;
     }
 
     // Question
