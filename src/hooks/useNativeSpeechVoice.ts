@@ -66,7 +66,7 @@ export const useNativeSpeechVoice = ({
       return;
     }
 
-    console.log('Voix disponibles pour la sélection:', voices.map(v => `${v.name} (${v.lang})`));
+    console.log('Voix disponibles pour la sélection:', voices.map(v => `${v.name} (${v.lang}) [${v.localService ? 'local' : 'remote'}]`));
     
     let bestVoice: SpeechSynthesisVoice | null = null;
     let bestScore = 0;
@@ -77,33 +77,33 @@ export const useNativeSpeechVoice = ({
       characteristics: string[]
     }> = {
       'Marc Dubois': { 
-        preferred: ['Microsoft Paul', 'Google Français (France)', 'Thomas'],
-        fallback: ['paul', 'thomas', 'henri', 'microsoft'],
+        preferred: ['Microsoft Paul Natural', 'Microsoft Paul', 'Google Français (France)', 'Thomas'],
+        fallback: ['paul', 'thomas', 'henri', 'microsoft', 'google'],
         characteristics: ['professionnel', 'confiant', 'chaleureux']
       },
       'Sophie Martin': { 
-        preferred: ['Microsoft Hortense', 'Google Français (France)', 'Marie'],
-        fallback: ['hortense', 'marie', 'julie', 'microsoft'],
+        preferred: ['Microsoft Hortense Natural', 'Microsoft Hortense', 'Google Français (France)', 'Marie'],
+        fallback: ['hortense', 'marie', 'julie', 'microsoft', 'google'],
         characteristics: ['rassurante', 'précise', 'bienveillante']
       },
       'Dr. Claire Rousseau': { 
-        preferred: ['Microsoft Julie', 'Google Français (France)', 'Claire'],
-        fallback: ['julie', 'claire', 'marie', 'microsoft'],
+        preferred: ['Microsoft Julie Natural', 'Microsoft Julie', 'Google Français (France)', 'Claire'],
+        fallback: ['julie', 'claire', 'marie', 'microsoft', 'google'],
         characteristics: ['experte', 'empathique', 'professionnelle']
       },
       'Alex Moreau': { 
-        preferred: ['Microsoft Thomas', 'Google Français (France)', 'Alex'],
-        fallback: ['thomas', 'alex', 'paul', 'microsoft'],
+        preferred: ['Microsoft Thomas Natural', 'Microsoft Thomas', 'Google Français (France)', 'Alex'],
+        fallback: ['thomas', 'alex', 'paul', 'microsoft', 'google'],
         characteristics: ['dynamique', 'passionné', 'moderne']
       },
       'Pierre Delacroix': { 
-        preferred: ['Microsoft Paul', 'Google Français (France)', 'Pierre'],
-        fallback: ['paul', 'pierre', 'henri', 'microsoft'],
+        preferred: ['Microsoft Paul Natural', 'Microsoft Paul', 'Google Français (France)', 'Pierre'],
+        fallback: ['paul', 'pierre', 'henri', 'microsoft', 'google'],
         characteristics: ['sérieux', 'fiable', 'expert']
       },
       'Camille Durand': { 
-        preferred: ['Microsoft Hortense', 'Google Français (France)', 'Camille'],
-        fallback: ['hortense', 'camille', 'julie', 'microsoft'],
+        preferred: ['Microsoft Hortense Natural', 'Microsoft Hortense', 'Google Français (France)', 'Camille'],
+        fallback: ['hortense', 'camille', 'julie', 'microsoft', 'google'],
         characteristics: ['énergique', 'optimiste', 'aventurière']
       }
     };
@@ -115,38 +115,55 @@ export const useNativeSpeechVoice = ({
       const voiceName = voice.name.toLowerCase();
       const voiceLang = voice.lang.toLowerCase();
 
+      // Correspondance exacte avec les voix préférées
       for (let i = 0; i < agentConfig.preferred.length; i++) {
         if (voiceName.includes(agentConfig.preferred[i].toLowerCase())) {
-          score += (200 - i * 20);
+          score += (300 - i * 30);
           break;
         }
       }
 
+      // Score fallback
       for (let i = 0; i < agentConfig.fallback.length; i++) {
         if (voiceName.includes(agentConfig.fallback[i])) {
-          score += (100 - i * 15);
+          score += (150 - i * 20);
           break;
         }
       }
 
-      const isMale = voiceName.includes('paul') || voiceName.includes('thomas') || voiceName.includes('henri') || voiceName.includes('male');
-      const isFemale = voiceName.includes('marie') || voiceName.includes('julie') || voiceName.includes('hortense') || voiceName.includes('female');
+      // Genre
+      const isMale = voiceName.includes('paul') || voiceName.includes('thomas') || voiceName.includes('henri') || voiceName.includes('male') || voiceName.includes('david') || voiceName.includes('mark');
+      const isFemale = voiceName.includes('marie') || voiceName.includes('julie') || voiceName.includes('hortense') || voiceName.includes('female') || voiceName.includes('zira') || voiceName.includes('hazel');
 
       if ((gender === 'male' && isMale) || (gender === 'female' && isFemale)) {
-        score += 150;
+        score += 200;
       }
 
+      // Bonus QUALITÉ - voix enhanced/neural en priorité maximale
+      if (voiceName.includes('natural')) score += 150;
+      if (voiceName.includes('neural')) score += 140;
+      if (voiceName.includes('enhanced')) score += 120;
+      if (voiceName.includes('premium')) score += 100;
+      if (voiceName.includes('advanced')) score += 90;
+
+      // Microsoft voices sont les meilleures sur Windows
       if (voiceName.includes('microsoft')) score += 80;
+
+      // Google voices sont bonnes aussi
       if (voiceName.includes('google')) score += 70;
-      if (voiceName.includes('premium')) score += 60;
-      if (voiceName.includes('enhanced')) score += 50;
 
-      if (voiceLang === 'fr-fr') score += 40;
-      if (voiceLang.startsWith('fr-')) score += 30;
+      // Apple voices sont excellentes sur macOS
+      if (voiceName.includes('apple') || voiceName.includes('samantha') || voiceName.includes('thomas')) score += 90;
 
-      if (voice.localService) score += 25;
+      // Bonus langue française
+      if (voiceLang === 'fr-fr') score += 50;
+      if (voiceLang.startsWith('fr-')) score += 40;
 
-      if (voice.default) score += 15;
+      // Bonus voix locale (plus réactive)
+      if (voice.localService) score += 30;
+
+      // Bonus voix par défaut
+      if (voice.default) score += 20;
 
       if (score > bestScore) {
         bestScore = score;
@@ -257,20 +274,20 @@ export const useNativeSpeechVoice = ({
   // Configuration vocale par agent avec différenciation homme/femme
   const getAgentVoiceConfig = useCallback((agentName: string, gender: 'male' | 'female') => {
     const configs: Record<string, { rate: number; pitch: number; volume: number }> = {
-      // HOMMES : voix graves
-      'Marc Dubois':      { rate: 0.87, pitch: 0.65, volume: 0.95 },
-      'Alex Moreau':      { rate: 0.90, pitch: 0.70, volume: 0.96 },
-      'Pierre Delacroix': { rate: 0.85, pitch: 0.60, volume: 0.94 },
+      // HOMMES : voix graves, plus lentes pour un ton naturel
+      'Marc Dubois':      { rate: 0.80, pitch: 0.70, volume: 0.88 },
+      'Alex Moreau':      { rate: 0.84, pitch: 0.72, volume: 0.88 },
+      'Pierre Delacroix': { rate: 0.78, pitch: 0.65, volume: 0.87 },
       
-      // FEMMES : voix aigües
-      'Sophie Martin':      { rate: 0.88, pitch: 1.35, volume: 0.94 },
-      'Dr. Claire Rousseau': { rate: 0.86, pitch: 1.30, volume: 0.93 },
-      'Camille Durand':     { rate: 0.90, pitch: 1.40, volume: 0.95 }
+      // FEMMES : voix plus rapides, plus aigües pour un ton naturel
+      'Sophie Martin':      { rate: 0.82, pitch: 1.28, volume: 0.86 },
+      'Dr. Claire Rousseau': { rate: 0.80, pitch: 1.25, volume: 0.85 },
+      'Camille Durand':     { rate: 0.86, pitch: 1.35, volume: 0.90 }
     };
 
     return configs[agentName] || (gender === 'male' 
-      ? { rate: 0.87, pitch: 0.65, volume: 0.95 }
-      : { rate: 0.88, pitch: 1.35, volume: 0.94 }
+      ? { rate: 0.80, pitch: 0.70, volume: 0.88 }
+      : { rate: 0.82, pitch: 1.28, volume: 0.86 }
     );
   }, []);
 
@@ -395,11 +412,16 @@ export const useNativeSpeechVoice = ({
       const utterance = new SpeechSynthesisUtterance(chunk.text);
       utteranceRef.current = utterance;
 
+      // Micro-variations aléatoires pour un rendu plus naturel
+      const microRateVar = 1.0 + (Math.random() - 0.5) * 0.06;
+      const microPitchVar = 1.0 + (Math.random() - 0.5) * 0.04;
+      const microVolVar = 1.0 + (Math.random() - 0.5) * 0.03;
+
       utterance.voice = selectedVoice;
       utterance.lang = 'fr-FR';
-      utterance.rate = finalConfig.rate;
-      utterance.pitch = finalConfig.pitch;
-      utterance.volume = finalConfig.volume;
+      utterance.rate = Math.max(0.6, Math.min(1.3, finalConfig.rate * microRateVar));
+      utterance.pitch = Math.max(0.4, Math.min(1.8, finalConfig.pitch * microPitchVar));
+      utterance.volume = Math.max(0.75, Math.min(1.0, finalConfig.volume * microVolVar));
 
       utterance.onstart = () => {
         if (currentChunk === 0) {
