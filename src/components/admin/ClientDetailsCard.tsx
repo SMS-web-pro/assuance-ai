@@ -362,577 +362,271 @@ const ClientDetailsCard: React.FC<ClientDetailsCardProps> = ({ demande, isOpen, 
   const generateClientDetailsPDF = () => {
     const doc = new jsPDF();
     
-    // Configuration des couleurs (RGB values 0-255)
-    const primaryColor = [41, 128, 185]; // Bleu professionnel
-    const secondaryColor = [52, 73, 94]; // Gris foncé
-    const lightGray = [248, 249, 250]; // Gris très clair
-    const accentColor = [26, 188, 156]; // Vert menthe
-    const clientColor = [52, 152, 219]; // Bleu client
-    const agentColor = [149, 165, 166]; // Gris agent
+    // Configuration des couleurs
+    const primaryColor = [41, 128, 185];
+    const secondaryColor = [52, 73, 94];
+    const lightGray = [248, 249, 250];
+    const accentColor = [26, 188, 156];
+    const clientColor = [52, 152, 219];
+    const agentColor = [149, 165, 166];
     
-    let yPosition = 25;
-    const lineHeight = 6;
-    const sectionSpacing = 12;
-    const leftMargin = 20;
-    const rightMargin = 190;
-    const pageWidth = rightMargin - leftMargin;
+    let y = 25;
+    const lh = 6; // line height
+    const lm = 20; // left margin
+    const rm = 190; // right margin
+    const pw = rm - lm; // page width
     
-    // Fonction helper pour ajouter une nouvelle page si nécessaire
-    const checkPageBreak = (requiredHeight: number = 40) => {
-      if (yPosition + requiredHeight > 270) {
+    const checkPage = (h: number = 30) => {
+      if (y + h > 265) {
         doc.addPage();
-        yPosition = 25;
-        return true;
+        y = 25;
       }
-      return false;
     };
     
-    // Fonction pour dessiner un séparateur
-    const drawSeparator = () => {
-      doc.setDrawColor(200, 200, 200);
-      doc.setLineWidth(0.3);
-      doc.line(leftMargin, yPosition, rightMargin, yPosition);
-      yPosition += 5;
+    const drawSectionTitle = (title: string) => {
+      checkPage(25);
+      doc.setFillColor(accentColor[0], accentColor[1], accentColor[2]);
+      doc.rect(lm - 2, y - 4, 4, 10, 'F');
+      doc.setFontSize(12);
+      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+      doc.setFont('helvetica', 'bold');
+      doc.text(title, lm + 5, y + 2);
+      y += 14;
     };
     
-    // ==================== PAGE 1 : EN-TÊTE & INFOS CLIENT ====================
+    const drawField = (label: string, value: string, labelWidth: number = 35) => {
+      if (!value || value.trim() === '') return;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+      doc.text(label + ':', lm + 5, y);
+      doc.setFont('helvetica', 'normal');
+      doc.text(value.substring(0, 65), lm + 5 + labelWidth, y);
+      y += lh;
+    };
     
-    // En-tête avec design professionnel
+    // ==================== EN-TÊTE ====================
     doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
     doc.rect(0, 0, 210, 40, 'F');
-    
-    // Ligne décorative
     doc.setFillColor(accentColor[0], accentColor[1], accentColor[2]);
     doc.rect(0, 38, 210, 2, 'F');
     
-    // Logo/Nom de l'entreprise
-    doc.setFontSize(28);
+    doc.setFontSize(26);
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
-    doc.text('ASSURE IA', leftMargin, 22);
-    
-    // Sous-titre
-    doc.setFontSize(11);
+    doc.text('ASSURE IA', lm, 22);
+    doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(200, 230, 255);
-    doc.text('Solutions d\'assurance nouvelle génération', leftMargin, 32);
+    doc.text('Solutions d\'assurance nouvelle génération', lm, 32);
     
-    yPosition = 55;
+    y = 52;
     
-    // Titre du document avec fond
+    // Titre
     doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
-    doc.roundedRect(leftMargin - 5, yPosition - 10, pageWidth + 10, 18, 3, 3, 'F');
-    
-    doc.setFontSize(16);
+    doc.roundedRect(lm - 5, y - 8, pw + 10, 14, 2, 2, 'F');
+    doc.setFontSize(14);
     doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
     doc.setFont('helvetica', 'bold');
-    doc.text('FICHE DE DEMANDE D\'ASSURANCE', leftMargin, yPosition);
+    doc.text('FICHE DE DEMANDE D\'ASSURANCE', lm, y);
+    y += 12;
     
-    yPosition += 15;
+    // Référence
+    doc.setFontSize(8);
+    doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Réf: ${demande.id.slice(0, 8).toUpperCase()} | Date: ${new Date().toLocaleDateString('fr-FR')} | Statut: ${demande.statut.toUpperCase()}`, lm, y);
+    y += 10;
     
-    // Informations de référence dans un cadre
-    doc.setFillColor(255, 255, 255);
-    doc.setDrawColor(200, 200, 200);
-    doc.roundedRect(leftMargin, yPosition - 5, pageWidth, 12, 2, 2, 'FD');
+    // ==================== INFOS CLIENT ====================
+    drawSectionTitle('INFORMATIONS CLIENT');
+    
+    const col2 = lm + pw / 2;
     
     doc.setFontSize(9);
-    doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Référence: ${demande.id.slice(0, 8).toUpperCase()}`, leftMargin + 5, yPosition + 2);
-    doc.text(`Date d'émission: ${new Date().toLocaleDateString('fr-FR')}`, leftMargin + 70, yPosition + 2);
-    doc.text(`Statut: ${demande.statut.toUpperCase()}`, rightMargin - 30, yPosition + 2);
+    drawField('Nom complet', `${demande.nom || ''} ${demande.prenom || ''}`.trim());
+    drawField('Email', demande.email);
+    drawField('Téléphone', demande.telephone);
+    drawField('Date naissance', demande.date_naissance ? new Date(demande.date_naissance).toLocaleDateString('fr-FR') : '');
+    drawField('Adresse', demande.adresse_complete);
+    drawField('Code postal', demande.code_postal);
+    y += 5;
     
-    yPosition += 20;
+    // ==================== DEMANDE ASSURANCE ====================
+    drawSectionTitle('DEMANDE D\'ASSURANCE');
     
-    // ==================== SECTION : INFORMATIONS CLIENT ====================
+    drawField('Type', getTypeLabel(demande.type_assurance));
+    drawField('Priorité', demande.priorite || 'normale');
+    drawField('Créée le', `${new Date(demande.date_creation).toLocaleDateString('fr-FR')} à ${new Date(demande.date_creation).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`);
+    drawField('Modifiée le', `${new Date(demande.date_modification).toLocaleDateString('fr-FR')} à ${new Date(demande.date_modification).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`);
+    y += 5;
     
-    checkPageBreak(50);
-    
-    // Barre latérale accent
-    doc.setFillColor(accentColor[0], accentColor[1], accentColor[2]);
-    doc.rect(leftMargin - 2, yPosition - 5, 4, 10, 'F');
-    
-    doc.setFontSize(13);
-    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-    doc.setFont('helvetica', 'bold');
-    doc.text('INFORMATIONS CLIENT', leftMargin + 5, yPosition);
-    yPosition += 12;
-    
-    // Cadre pour les infos client
-    const clientInfoHeight = 45;
-    doc.setFillColor(250, 252, 255);
-    doc.setDrawColor(220, 230, 240);
-    doc.roundedRect(leftMargin, yPosition - 3, pageWidth, clientInfoHeight, 2, 2, 'FD');
-    
-    yPosition += 5;
-    doc.setFontSize(10);
-    doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
-    
-    // Colonne gauche
-    const col1X = leftMargin + 5;
-    const col2X = leftMargin + pageWidth / 2 + 5;
-    
-    // Nom complet
-    doc.setFont('helvetica', 'bold');
-    doc.text('Nom complet:', col1X, yPosition);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`${demande.nom || ''} ${demande.prenom || ''}`.trim() || 'Non renseigné', col1X + 28, yPosition);
-    
-    // Email
-    doc.setFont('helvetica', 'bold');
-    doc.text('Email:', col2X, yPosition);
-    doc.setFont('helvetica', 'normal');
-    doc.text(demande.email || 'Non renseigné', col2X + 15, yPosition);
-    yPosition += 7;
-    
-    // Téléphone
-    doc.setFont('helvetica', 'bold');
-    doc.text('Téléphone:', col1X, yPosition);
-    doc.setFont('helvetica', 'normal');
-    doc.text(demande.telephone || 'Non renseigné', col1X + 25, yPosition);
-    
-    // Date de naissance
-    doc.setFont('helvetica', 'bold');
-    doc.text('Date de naissance:', col2X, yPosition);
-    doc.setFont('helvetica', 'normal');
-    doc.text(demande.date_naissance ? new Date(demande.date_naissance).toLocaleDateString('fr-FR') : 'Non renseignée', col2X + 35, yPosition);
-    yPosition += 7;
-    
-    // Adresse
-    doc.setFont('helvetica', 'bold');
-    doc.text('Adresse:', col1X, yPosition);
-    doc.setFont('helvetica', 'normal');
-    const adresse = demande.adresse_complete || 'Non renseignée';
-    doc.text(adresse.substring(0, 50), col1X + 20, yPosition);
-    
-    // Code postal
-    doc.setFont('helvetica', 'bold');
-    doc.text('Code postal:', col2X, yPosition);
-    doc.setFont('helvetica', 'normal');
-    doc.text(demande.code_postal || 'Non renseigné', col2X + 28, yPosition);
-    
-    yPosition += clientInfoHeight - 10;
-    
-    // ==================== SECTION : TYPE D'ASSURANCE ====================
-    
-    checkPageBreak(40);
-    
-    doc.setFillColor(accentColor[0], accentColor[1], accentColor[2]);
-    doc.rect(leftMargin - 2, yPosition - 5, 4, 10, 'F');
-    
-    doc.setFontSize(13);
-    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-    doc.setFont('helvetica', 'bold');
-    doc.text('DEMANDE D\'ASSURANCE', leftMargin + 5, yPosition);
-    yPosition += 12;
-    
-    // Cadre pour les infos demande
-    doc.setFillColor(250, 252, 255);
-    doc.setDrawColor(220, 230, 240);
-    doc.roundedRect(leftMargin, yPosition - 3, pageWidth, 30, 2, 2, 'FD');
-    
-    yPosition += 5;
-    doc.setFontSize(10);
-    doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
-    
-    doc.setFont('helvetica', 'bold');
-    doc.text('Type d\'assurance:', col1X, yPosition);
-    doc.setFont('helvetica', 'normal');
-    doc.text(getTypeLabel(demande.type_assurance), col1X + 35, yPosition);
-    
-    doc.setFont('helvetica', 'bold');
-    doc.text('Priorité:', col2X, yPosition);
-    doc.setFont('helvetica', 'normal');
-    doc.text(demande.priorite || 'normale', col2X + 20, yPosition);
-    yPosition += 7;
-    
-    doc.setFont('helvetica', 'bold');
-    doc.text('Date de création:', col1X, yPosition);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`${new Date(demande.date_creation).toLocaleDateString('fr-FR')} à ${new Date(demande.date_creation).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`, col1X + 35, yPosition);
-    yPosition += 7;
-    
-    doc.setFont('helvetica', 'bold');
-    doc.text('Dernière modification:', col1X, yPosition);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`${new Date(demande.date_modification).toLocaleDateString('fr-FR')} à ${new Date(demande.date_modification).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`, col1X + 40, yPosition);
-    
-    yPosition += 25;
-    
-    // ==================== SECTION : INFORMATIONS LEAD ====================
-    
-    checkPageBreak(50);
-    
-    doc.setFillColor(accentColor[0], accentColor[1], accentColor[2]);
-    doc.rect(leftMargin - 2, yPosition - 5, 4, 10, 'F');
-    
-    doc.setFontSize(13);
-    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-    doc.setFont('helvetica', 'bold');
-    doc.text('INFORMATIONS LEAD', leftMargin + 5, yPosition);
-    yPosition += 12;
-    
-    // Cadre pour les infos lead
-    const leadInfoHeight = demande.consentement_rgpd ? 50 : 35;
-    doc.setFillColor(250, 252, 255);
-    doc.setDrawColor(220, 230, 240);
-    doc.roundedRect(leftMargin, yPosition - 3, pageWidth, leadInfoHeight, 2, 2, 'FD');
-    
-    yPosition += 5;
-    doc.setFontSize(10);
-    doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
-    
-    const donneesSpecifiques = demande.donnees_specifiques || {};
-    
-    if (donneesSpecifiques.lien_agent) {
-      doc.setFont('helvetica', 'bold');
-      doc.text('Lien agent:', col1X, yPosition);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.text(donneesSpecifiques.lien_agent.substring(0, 60), col1X + 25, yPosition);
-      doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
-      yPosition += 7;
-    }
-    
-    if (donneesSpecifiques.ip_client) {
-      doc.setFont('helvetica', 'bold');
-      doc.text('IP client:', col1X, yPosition);
-      doc.setFont('helvetica', 'normal');
-      doc.text(donneesSpecifiques.ip_client, col1X + 22, yPosition);
-      yPosition += 7;
-    }
-    
-    if (donneesSpecifiques.nombre_messages) {
-      doc.setFont('helvetica', 'bold');
-      doc.text('Nombre de messages:', col1X, yPosition);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`${donneesSpecifiques.nombre_messages}`, col1X + 40, yPosition);
-      yPosition += 7;
-    }
-    
-    if (donneesSpecifiques.debut_conversation) {
-      doc.setFont('helvetica', 'bold');
-      doc.text('Début conversation:', col1X, yPosition);
-      doc.setFont('helvetica', 'normal');
-      doc.text(new Date(donneesSpecifiques.debut_conversation).toLocaleString('fr-FR'), col1X + 40, yPosition);
-      yPosition += 7;
-    }
-    
-    if (donneesSpecifiques.fin_conversation) {
-      doc.setFont('helvetica', 'bold');
-      doc.text('Fin conversation:', col1X, yPosition);
-      doc.setFont('helvetica', 'normal');
-      doc.text(new Date(donneesSpecifiques.fin_conversation).toLocaleString('fr-FR'), col1X + 35, yPosition);
-      yPosition += 7;
-    }
-    
-    // Consentement RGPD
-    if (demande.consentement_rgpd) {
-      yPosition += 3;
-      drawSeparator();
-      yPosition += 2;
+    // ==================== INFOS LEAD ====================
+    const ds = demande.donnees_specifiques || {};
+    if (ds.lien_agent || ds.ip_client || ds.nombre_messages) {
+      drawSectionTitle('INFORMATIONS LEAD');
       
-      doc.setFont('helvetica', 'bold');
-      doc.text('Consentement RGPD:', col1X, yPosition);
+      drawField('Lien agent', ds.lien_agent);
+      drawField('IP client', ds.ip_client);
+      drawField('Messages', ds.nombre_messages?.toString());
+      drawField('Début conversation', ds.debut_conversation ? new Date(ds.debut_conversation).toLocaleString('fr-FR') : '');
+      drawField('Fin conversation', ds.fin_conversation ? new Date(ds.fin_conversation).toLocaleString('fr-FR') : '');
       
-      // Badge coloré
-      const consentColor = demande.consentement_rgpd.consentement ? [39, 174, 96] : [231, 76, 60];
-      const consentText = demande.consentement_rgpd.consentement ? 'ACCEPTÉ' : 'REFUSÉ';
-      const consentWidth = doc.getTextWidth(consentText) + 8;
-      
-      doc.setFillColor(consentColor[0], consentColor[1], consentColor[2]);
-      doc.roundedRect(col1X + 42, yPosition - 4, consentWidth, 7, 2, 2, 'F');
-      doc.setTextColor(255, 255, 255);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8);
-      doc.text(consentText, col1X + 46, yPosition);
-      
-      doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      
-      if (demande.consentement_rgpd.preuve?.ip) {
-        doc.text(`IP: ${demande.consentement_rgpd.preuve.ip}`, col2X, yPosition);
-      }
-      yPosition += 7;
-      
-      if (demande.consentement_rgpd.preuve?.date) {
-        doc.setFont('helvetica', 'bold');
-        doc.text('Date consentement:', col1X, yPosition);
-        doc.setFont('helvetica', 'normal');
-        doc.text(demande.consentement_rgpd.preuve.date, col1X + 38, yPosition);
-        yPosition += 7;
-      }
-    }
-    
-    yPosition += leadInfoHeight - 30;
-    
-    // ==================== SECTION : DÉTAILS SPÉCIFIQUES ====================
-    
-    checkPageBreak(40);
-    
-    doc.setFillColor(accentColor[0], accentColor[1], accentColor[2]);
-    doc.rect(leftMargin - 2, yPosition - 5, 4, 10, 'F');
-    
-    doc.setFontSize(13);
-    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-    doc.setFont('helvetica', 'bold');
-    doc.text('DÉTAILS SPÉCIFIQUES', leftMargin + 5, yPosition);
-    yPosition += 12;
-    
-    // Récupérer et afficher les données spécifiques
-    const type = demande.type_assurance;
-    let specificData = { ...donneesSpecifiques };
-    
-    // Fusionner avec les données des tables spécifiques
-    switch (type) {
-      case 'auto':
-        specificData = { ...(demande.assurance_auto?.[0] || {}), ...donneesSpecifiques };
-        break;
-      case 'habitation':
-        specificData = { ...(demande.assurance_habitation?.[0] || {}), ...donneesSpecifiques };
-        break;
-      case 'sante':
-        specificData = { ...(demande.assurance_sante?.[0] || {}), ...donneesSpecifiques };
-        break;
-      case 'moto':
-        specificData = { ...(demande.assurance_moto?.[0] || {}), ...donneesSpecifiques };
-        break;
-      case 'emprunteur':
-        specificData = { ...(demande.assurance_emprunteur?.[0] || {}), ...donneesSpecifiques };
-        break;
-      case 'voyage':
-        specificData = { ...(demande.assurance_voyage?.[0] || {}), ...donneesSpecifiques };
-        break;
-    }
-    
-    // Filtrer les champs à afficher (exclure les métadonnées et l'historique)
-    const fieldsToDisplay = Object.entries(specificData).filter(([key, value]) => {
-      return value && 
-             key !== 'id' && 
-             key !== 'demande_id' && 
-             key !== 'created_at' &&
-             key !== 'historique_conversation' &&
-             key !== 'lien_agent' &&
-             key !== 'ip_client' &&
-             key !== 'nombre_messages' &&
-             key !== 'debut_conversation' &&
-             key !== 'fin_conversation';
-    });
-    
-    if (fieldsToDisplay.length > 0) {
-      // Cadre pour les détails
-      const detailsHeight = Math.min(fieldsToDisplay.length * 8 + 10, 80);
-      checkPageBreak(detailsHeight + 10);
-      
-      doc.setFillColor(250, 252, 255);
-      doc.setDrawColor(220, 230, 240);
-      doc.roundedRect(leftMargin, yPosition - 3, pageWidth, detailsHeight, 2, 2, 'FD');
-      
-      yPosition += 5;
-      
-      fieldsToDisplay.forEach(([key, value], index) => {
-        if (yPosition > 260) {
-          doc.addPage();
-          yPosition = 25;
-        }
-        
-        const displayKey = key.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').toLowerCase().replace(/^./, str => str.toUpperCase());
-        const displayValue = Array.isArray(value) ? value.join(', ') : String(value);
+      // Consentement RGPD
+      if (demande.consentement_rgpd) {
+        const consentText = demande.consentement_rgpd.consentement ? 'ACCEPTÉ' : 'REFUSÉ';
+        const consentColor = demande.consentement_rgpd.consentement ? [39, 174, 96] : [231, 76, 60];
         
         doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
         doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
-        doc.text(`${displayKey}:`, col1X, yPosition);
-        doc.setFont('helvetica', 'normal');
+        doc.text('Consentement RGPD:', lm + 5, y);
         
-        // Gérer les longs textes
-        const maxValueWidth = pageWidth / 2 - 30;
-        const lines = doc.splitTextToSize(displayValue, maxValueWidth);
+        doc.setFillColor(consentColor[0], consentColor[1], consentColor[2]);
+        const tw = doc.getTextWidth(consentText) + 6;
+        doc.roundedRect(lm + 42, y - 4, tw, 7, 1.5, 1.5, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(7);
+        doc.text(consentText, lm + 45, y);
         
-        if (lines.length === 1) {
-          doc.text(displayValue, col1X + 45, yPosition);
-        } else {
-          lines.forEach((line: string, lineIndex: number) => {
-            doc.text(line, col1X + 45, yPosition + (lineIndex * lineHeight));
-          });
-          yPosition += (lines.length - 1) * lineHeight;
+        if (demande.consentement_rgpd.preuve?.ip) {
+          doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+          doc.setFontSize(9);
+          doc.text(`IP: ${demande.consentement_rgpd.preuve.ip}`, lm + 45 + tw + 5, y);
         }
+        y += lh;
         
-        yPosition += lineHeight + 1;
-      });
-      
-      yPosition += detailsHeight - fieldsToDisplay.length * 8 - 5;
-    } else {
-      doc.setFont('helvetica', 'italic');
-      doc.setTextColor(150, 150, 150);
-      doc.text('Aucun détail spécifique disponible', leftMargin + 5, yPosition);
-      yPosition += 15;
+        if (demande.consentement_rgpd.preuve?.date) {
+          drawField('Date consentement', demande.consentement_rgpd.preuve.date);
+        }
+      }
+      y += 5;
     }
     
-    // Notes du conseiller si présentes
+    // ==================== DÉTAILS SPÉCIFIQUES ====================
+    const type = demande.type_assurance;
+    let specificData = { ...ds };
+    switch (type) {
+      case 'auto': specificData = { ...(demande.assurance_auto?.[0] || {}), ...ds }; break;
+      case 'habitation': specificData = { ...(demande.assurance_habitation?.[0] || {}), ...ds }; break;
+      case 'sante': specificData = { ...(demande.assurance_sante?.[0] || {}), ...ds }; break;
+      case 'moto': specificData = { ...(demande.assurance_moto?.[0] || {}), ...ds }; break;
+      case 'emprunteur': specificData = { ...(demande.assurance_emprunteur?.[0] || {}), ...ds }; break;
+      case 'voyage': specificData = { ...(demande.assurance_voyage?.[0] || {}), ...ds }; break;
+    }
+    
+    const excludeKeys = ['id', 'demande_id', 'created_at', 'historique_conversation', 'lien_agent', 'ip_client', 'nombre_messages', 'debut_conversation', 'fin_conversation'];
+    const fields = Object.entries(specificData).filter(([k, v]) => v && !excludeKeys.includes(k));
+    
+    if (fields.length > 0) {
+      drawSectionTitle('DÉTAILS SPÉCIFIQUES');
+      fields.forEach(([key, value]) => {
+        const displayKey = key.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').toLowerCase().replace(/^./, s => s.toUpperCase());
+        const displayValue = Array.isArray(value) ? value.join(', ') : String(value);
+        drawField(displayKey, displayValue);
+      });
+      y += 5;
+    }
+    
+    // ==================== NOTES CONSEILLER ====================
     if (demande.notes_conseiller) {
-      yPosition += sectionSpacing;
-      checkPageBreak(40);
+      checkPage(30);
+      drawSectionTitle('NOTES DU CONSEILLER');
       
-      doc.setFillColor(accentColor[0], accentColor[1], accentColor[2]);
-      doc.rect(leftMargin - 2, yPosition - 5, 4, 10, 'F');
-      
-      doc.setFontSize(13);
-      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.setFont('helvetica', 'bold');
-      doc.text('NOTES DU CONSEILLER', leftMargin + 5, yPosition);
-      yPosition += 12;
-      
-      // Encadrer les notes
-      const notesLines = doc.splitTextToSize(demande.notes_conseiller, pageWidth - 15);
-      const notesHeight = notesLines.length * lineHeight + 12;
+      const notesLines = doc.splitTextToSize(demande.notes_conseiller, pw - 15);
+      const notesH = Math.min(notesLines.length * lh + 8, 50);
       
       doc.setFillColor(255, 252, 240);
       doc.setDrawColor(240, 220, 100);
-      doc.roundedRect(leftMargin, yPosition - 3, pageWidth, notesHeight, 2, 2, 'FD');
-      
-      // Barre latérale jaune
+      doc.roundedRect(lm, y - 2, pw, notesH, 2, 2, 'FD');
       doc.setFillColor(241, 196, 15);
-      doc.rect(leftMargin, yPosition - 3, 3, notesHeight, 'F');
+      doc.rect(lm, y - 2, 3, notesH, 'F');
       
-      yPosition += 5;
-      doc.setFontSize(10);
+      doc.setFontSize(9);
       doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
       doc.setFont('helvetica', 'italic');
       
-      notesLines.forEach((line: string) => {
-        doc.text(line, leftMargin + 8, yPosition);
-        yPosition += lineHeight;
-      });
-      
-      yPosition += notesHeight - notesLines.length * lineHeight - 5;
+      const startY = y + 3;
+      for (let i = 0; i < Math.min(notesLines.length, 7); i++) {
+        doc.text(notesLines[i], lm + 8, startY + i * lh);
+      }
+      y += notesH + 5;
     }
     
-    // ==================== SECTION : HISTORIQUE CONVERSATION ====================
-    
-    if (donneesSpecifiques.historique_conversation && Array.isArray(donneesSpecifiques.historique_conversation) && donneesSpecifiques.historique_conversation.length > 0) {
-      // Nouvelle page pour l'historique
+    // ==================== HISTORIQUE CONVERSATION ====================
+    if (ds.historique_conversation && Array.isArray(ds.historique_conversation) && ds.historique_conversation.length > 0) {
       doc.addPage();
-      yPosition = 25;
+      y = 25;
       
-      doc.setFillColor(accentColor[0], accentColor[1], accentColor[2]);
-      doc.rect(leftMargin - 2, yPosition - 5, 4, 10, 'F');
+      drawSectionTitle(`HISTORIQUE CONVERSATION (${ds.historique_conversation.length} messages)`);
       
-      doc.setFontSize(13);
-      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.setFont('helvetica', 'bold');
-      doc.text(`HISTORIQUE CONVERSATION (${donneesSpecifiques.historique_conversation.length} messages)`, leftMargin + 5, yPosition);
-      yPosition += 15;
-      
-      // En-tête du tableau
-      doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.roundedRect(leftMargin, yPosition - 4, pageWidth, 8, 2, 2, 'F');
-      doc.setTextColor(255, 255, 255);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8);
-      doc.text('RÔLE', leftMargin + 5, yPosition);
-      doc.text('MESSAGE', leftMargin + 30, yPosition);
-      doc.text('HEURE', rightMargin - 15, yPosition);
-      yPosition += 10;
-      
-      donneesSpecifiques.historique_conversation.forEach((msg: any, index: number) => {
-        if (yPosition > 255) {
-          doc.addPage();
-          yPosition = 25;
-          
-          // Répéter l'en-tête du tableau
-          doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-          doc.roundedRect(leftMargin, yPosition - 4, pageWidth, 8, 2, 2, 'F');
-          doc.setTextColor(255, 255, 255);
-          doc.setFont('helvetica', 'bold');
-          doc.setFontSize(8);
-          doc.text('RÔLE', leftMargin + 5, yPosition);
-          doc.text('MESSAGE', leftMargin + 30, yPosition);
-          doc.text('HEURE', rightMargin - 15, yPosition);
-          yPosition += 10;
-        }
-        
-        // Fond alterné
-        if (index % 2 === 0) {
-          doc.setFillColor(245, 248, 252);
-          doc.rect(leftMargin, yPosition - 4, pageWidth, 20, 'F');
-        }
+      ds.historique_conversation.forEach((msg: any, idx: number) => {
+        checkPage(25);
         
         // Badge role
-        const roleLabel = msg.role === 'user' ? 'CLIENT' : 'AGENT IA';
-        const roleColor = msg.role === 'user' ? clientColor : agentColor;
+        const isUser = msg.role === 'user';
+        const roleLabel = isUser ? 'CLIENT' : 'AGENT IA';
+        const roleColor = isUser ? clientColor : agentColor;
         
         doc.setFillColor(roleColor[0], roleColor[1], roleColor[2]);
-        doc.roundedRect(leftMargin + 2, yPosition - 3, 22, 6, 1.5, 1.5, 'F');
+        doc.roundedRect(lm, y - 3, 20, 6, 1.5, 1.5, 'F');
         doc.setTextColor(255, 255, 255);
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(6);
-        doc.text(roleLabel, leftMargin + 4, yPosition);
+        doc.text(roleLabel, lm + 2, y + 0.5);
         
         // Timestamp
         if (msg.timestamp) {
-          doc.setTextColor(120, 120, 120);
+          doc.setTextColor(150, 150, 150);
           doc.setFontSize(7);
           doc.setFont('helvetica', 'normal');
-          doc.text(new Date(msg.timestamp).toLocaleTimeString('fr-FR'), rightMargin - 15, yPosition);
+          doc.text(new Date(msg.timestamp).toLocaleTimeString('fr-FR'), rm - 15, y);
         }
         
-        yPosition += 5;
+        y += 6;
         
-        // Contenu du message
+        // Contenu
         doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
         doc.setFontSize(8);
         doc.setFont('helvetica', 'normal');
         
-        const msgContent = msg.contenu || '';
-        const msgLines = doc.splitTextToSize(msgContent, pageWidth - 35);
-        const maxLines = Math.min(msgLines.length, 5); // Limiter à 5 lignes
-        
-        for (let i = 0; i < maxLines; i++) {
-          doc.text(msgLines[i], leftMargin + 30, yPosition);
-          yPosition += 4;
+        const msgLines = doc.splitTextToSize(msg.contenu || '', pw - 30);
+        const maxL = Math.min(msgLines.length, 6);
+        for (let i = 0; i < maxL; i++) {
+          doc.text(msgLines[i], lm + 25, y);
+          y += 4;
         }
-        
-        if (msgLines.length > 5) {
+        if (msgLines.length > 6) {
           doc.setFont('helvetica', 'italic');
           doc.setTextColor(150, 150, 150);
-          doc.text(`... (${msgLines.length - 5} lignes supplémentaires)`, leftMargin + 30, yPosition);
-          yPosition += 4;
+          doc.text(`... +${msgLines.length - 6} lignes`, lm + 25, y);
+          y += 4;
         }
         
-        yPosition += 4;
-        
-        // Séparateur
+        y += 3;
         doc.setDrawColor(230, 230, 230);
         doc.setLineWidth(0.2);
-        doc.line(leftMargin + 5, yPosition, rightMargin - 5, yPosition);
-        yPosition += 4;
+        doc.line(lm + 5, y, rm - 5, y);
+        y += 4;
       });
     }
     
     // ==================== PIED DE PAGE ====================
-    
-    // Ajouter le pied de page sur toutes les pages
     const totalPages = doc.getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {
       doc.setPage(i);
-      
-      const footerY = 285;
+      const fy = 285;
       doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
       doc.setLineWidth(0.5);
-      doc.line(leftMargin, footerY, rightMargin, footerY);
-      
-      // Ligne décorative
+      doc.line(lm, fy, rm, fy);
       doc.setFillColor(accentColor[0], accentColor[1], accentColor[2]);
-      doc.rect(leftMargin, footerY + 1, 30, 1, 'F');
-      
+      doc.rect(lm, fy + 1, 25, 1, 'F');
       doc.setFontSize(7);
       doc.setTextColor(100, 100, 100);
       doc.setFont('helvetica', 'normal');
-      doc.text('ASSURE IA - Solutions d\'assurance nouvelle génération', leftMargin, footerY + 8);
-      doc.text(`Page ${i} / ${totalPages}`, rightMargin - 20, footerY + 8);
-      doc.text(`Généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}`, leftMargin, footerY + 14);
-      doc.text('Document confidentiel - Usage interne', rightMargin - 45, footerY + 14);
+      doc.text('ASSURE IA', lm, fy + 8);
+      doc.text(`Page ${i}/${totalPages}`, rm - 20, fy + 8);
+      doc.text(new Date().toLocaleDateString('fr-FR'), lm, fy + 13);
     }
     
     return doc;
