@@ -274,20 +274,20 @@ export const useNativeSpeechVoice = ({
   // Configuration vocale par agent avec différenciation homme/femme
   const getAgentVoiceConfig = useCallback((agentName: string, gender: 'male' | 'female') => {
     const configs: Record<string, { rate: number; pitch: number; volume: number }> = {
-      // HOMMES : voix graves, plus lentes pour un ton naturel
-      'Marc Dubois':      { rate: 0.80, pitch: 0.70, volume: 0.88 },
-      'Alex Moreau':      { rate: 0.84, pitch: 0.72, volume: 0.88 },
-      'Pierre Delacroix': { rate: 0.78, pitch: 0.65, volume: 0.87 },
+      // HOMMES : voix graves, rythme naturel
+      'Marc Dubois':      { rate: 1.05, pitch: 0.70, volume: 0.88 },
+      'Alex Moreau':      { rate: 1.10, pitch: 0.72, volume: 0.88 },
+      'Pierre Delacroix': { rate: 1.00, pitch: 0.65, volume: 0.87 },
       
-      // FEMMES : voix plus rapides, plus aigües pour un ton naturel
-      'Sophie Martin':      { rate: 0.82, pitch: 1.28, volume: 0.86 },
-      'Dr. Claire Rousseau': { rate: 0.80, pitch: 1.25, volume: 0.85 },
-      'Camille Durand':     { rate: 0.86, pitch: 1.35, volume: 0.90 }
+      // FEMMES : voix aigües, rythme naturel
+      'Sophie Martin':      { rate: 1.08, pitch: 1.28, volume: 0.86 },
+      'Dr. Claire Rousseau': { rate: 1.02, pitch: 1.25, volume: 0.85 },
+      'Camille Durand':     { rate: 1.12, pitch: 1.35, volume: 0.90 }
     };
 
     return configs[agentName] || (gender === 'male' 
-      ? { rate: 0.80, pitch: 0.70, volume: 0.88 }
-      : { rate: 0.82, pitch: 1.28, volume: 0.86 }
+      ? { rate: 1.05, pitch: 0.70, volume: 0.88 }
+      : { rate: 1.08, pitch: 1.28, volume: 0.86 }
     );
   }, []);
 
