@@ -46,7 +46,15 @@ export const saveDemandeAssurance = async (
         code_postal: data.code_postal,
         statut: 'nouveau',
         priorite: 'normale',
-        consentement_rgpd: data.consentement_rgpd || null
+        consentement_rgpd: data.consentement_rgpd || null,
+        donnees_specifiques: {
+          lien_agent: data.lien_agent || null,
+          historique_conversation: data.historique_conversation || [],
+          nombre_messages: data.nombre_messages || 0,
+          debut_conversation: data.debut_conversation || null,
+          fin_conversation: data.fin_conversation || null,
+          ip_client: data.consentement_rgpd?.preuve?.ip || null
+        }
       })
       .select()
       .single();

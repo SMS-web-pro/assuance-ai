@@ -524,6 +524,29 @@ const AIDataExtractor = ({ messages, insuranceType, onSaveSuccess }: AIDataExtra
         // Extraire toutes les données de la conversation
         const allData = extractAllDataFromConversation(messages);
         
+        // Ajouter l'URL de la page comme lien agent
+        allData.lien_agent = window.location.href;
+        
+        // Ajouter l'historique complet de la conversation
+        allData.historique_conversation = messages.map(m => ({
+          role: m.role,
+          contenu: m.content,
+          timestamp: new Date().toISOString()
+        }));
+        
+        // Ajouter le nombre de messages
+        allData.nombre_messages = messages.length;
+        
+        // Ajouter la durée estimée de la conversation
+        allData.debut_conversation = messages[0] ? new Date().toISOString() : null;
+        allData.fin_conversation = new Date().toISOString();
+        
+        console.log('📎 Données supplémentaires ajoutées:', {
+          lien_agent: allData.lien_agent,
+          nombre_messages: allData.nombre_messages,
+          historique: allData.historique_conversation.length + ' messages'
+        });
+        
         // Tentative de sauvegarde immédiate
         setTimeout(async () => {
           console.log('💾 Sauvegarde des données extraites...');

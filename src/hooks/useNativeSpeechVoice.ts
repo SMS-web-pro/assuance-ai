@@ -194,14 +194,32 @@ export const useNativeSpeechVoice = ({
   const cleanTextForSpeech = useCallback((text: string): string => {
     let cleanedText = text;
     
-    // Supprimer markdown et emojis
+    // Supprimer markdown, emojis et symbols
     cleanedText = cleanedText
       .replace(/\*\*/g, '')
       .replace(/\*/g, '')
       .replace(/#{1,6}\s/g, '')
       .replace(/`{1,3}[^`]*`{1,3}/g, '')
       .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-      .replace(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F900}-\u{1F9FF}]|[\u{1FA70}-\u{1FAFF}]/gu, '');
+      // Supprimer symbols de séparation
+      .replace(/[-]{3,}/g, '')
+      .replace(/[=]{3,}/g, '')
+      .replace(/[•]{3,}/g, '')
+      .replace(/[─]{3,}/g, '')
+      .replace(/[━]{3,}/g, '')
+      .replace(/[═]{3,}/g, '')
+      .replace(/[—]{3,}/g, '')
+      // Supprimer bullet points et icons
+      .replace(/[►▸▹‣⁃]/g, '')
+      .replace(/[✓✔✅☑️]/g, '')
+      .replace(/[❌✗✘]/g, '')
+      .replace(/[📞📧📱💡🎯🔒🛡️🏠📐🏗️📅]/g, '')
+      // Supprimer emojis restants
+      .replace(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F900}-\u{1F9FF}]|[\u{1FA70}-\u{1FAFF}]/gu, '')
+      // Supprimer pipes de tableau
+      .replace(/\|/g, '')
+      // Supprimer crochets et accolades vides
+      .replace(/[\[\]{}]/g, '');
 
     // Corrections françaises
     const corrections: Record<string, string> = {
