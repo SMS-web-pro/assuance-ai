@@ -604,6 +604,138 @@ const ClientDetailsCard: React.FC<ClientDetailsCardProps> = ({ demande, isOpen, 
       });
     }
     
+    // Section Informations Lead
+    if (demande.donnees_specifiques) {
+      yPosition += sectionSpacing;
+      if (yPosition > 240) {
+        doc.addPage();
+        yPosition = 25;
+      }
+      
+      doc.setFillColor(accentColor[0], accentColor[1], accentColor[2]);
+      doc.rect(leftMargin - 2, yPosition - 5, 3, 8, 'F');
+      
+      doc.setFontSize(14);
+      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+      doc.setFont('helvetica', 'bold');
+      doc.text('INFORMATIONS LEAD', leftMargin + 5, yPosition);
+      yPosition += 12;
+      
+      doc.setFontSize(10);
+      doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+      doc.setFont('helvetica', 'normal');
+      
+      const leadInfo = [
+        { label: 'Lien agent', value: demande.donnees_specifiques.lien_agent },
+        { label: 'IP client', value: demande.donnees_specifiques.ip_client },
+        { label: 'Nombre de messages', value: demande.donnees_specifiques.nombre_messages?.toString() },
+        { label: 'Début conversation', value: demande.donnees_specifiques.debut_conversation ? new Date(demande.donnees_specifiques.debut_conversation).toLocaleString('fr-FR') : null },
+        { label: 'Fin conversation', value: demande.donnees_specifiques.fin_conversation ? new Date(demande.donnees_specifiques.fin_conversation).toLocaleString('fr-FR') : null }
+      ];
+      
+      leadInfo.forEach((info) => {
+        if (info.value) {
+          doc.setFont('helvetica', 'bold');
+          doc.text(`${info.label}:`, leftMargin, yPosition);
+          doc.setFont('helvetica', 'normal');
+          doc.text(info.value, leftMargin + 40, yPosition);
+          yPosition += lineHeight + 1;
+        }
+      });
+      
+      // Consentement RGPD
+      if (demande.consentement_rgpd) {
+        yPosition += 2;
+        doc.setFont('helvetica', 'bold');
+        doc.text('Consentement RGPD:', leftMargin, yPosition);
+        doc.setFont('helvetica', 'normal');
+        doc.text(demande.consentement_rgpd.consentement ? 'Accepté' : 'Refusé', leftMargin + 40, yPosition);
+        yPosition += lineHeight + 1;
+        
+        if (demande.consentement_rgpd.preuve?.ip) {
+          doc.setFont('helvetica', 'bold');
+          doc.text('IP preuve RGPD:', leftMargin, yPosition);
+          doc.setFont('helvetica', 'normal');
+          doc.text(demande.consentement_rgpd.preuve.ip, leftMargin + 40, yPosition);
+          yPosition += lineHeight + 1;
+        }
+        
+        if (demande.consentement_rgpd.preuve?.date) {
+          doc.setFont('helvetica', 'bold');
+          doc.text('Date consentement:', leftMargin, yPosition);
+          doc.setFont('helvetica', 'normal');
+          doc.text(demande.consentement_rgpd.preuve.date, leftMargin + 40, yPosition);
+          yPosition += lineHeight + 1;
+        }
+      }
+    }
+    
+    // Section Historique conversation
+    if (demande.donnees_specifiques?.historique_conversation && demande.donnees_specifiques.historique_conversation.length > 0) {
+      yPosition += sectionSpacing;
+      if (yPosition > 240) {
+        doc.addPage();
+        yPosition = 25;
+      }
+      
+      doc.setFillColor(accentColor[0], accentColor[1], accentColor[2]);
+      doc.rect(leftMargin - 2, yPosition - 5, 3, 8, 'F');
+      
+      doc.setFontSize(14);
+      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`HISTORIQUE CONVERSATION (${demande.donnees_specifiques.historique_conversation.length} messages)`, leftMargin + 5, yPosition);
+      yPosition += 12;
+      
+      doc.setFontSize(9);
+      doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+      
+      demande.donnees_specifiques.historique_conversation.forEach((msg: any, index: number) => {
+        if (yPosition > 260) {
+          doc.addPage();
+          yPosition = 25;
+        }
+        
+        // Badge role
+        const roleLabel = msg.role === 'user' ? 'CLIENT' : 'AGENT IA';
+        const roleColor = msg.role === 'user' ? [41, 128, 185] : [100, 100, 100];
+        
+        doc.setFillColor(roleColor[0], roleColor[1], roleColor[2]);
+        doc.roundedRect(leftMargin, yPosition - 4, 18, 6, 1, 1, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7);
+        doc.text(roleLabel, leftMargin + 2, yPosition);
+        
+        // Timestamp
+        if (msg.timestamp) {
+          doc.setTextColor(150, 150, 150);
+          doc.setFontSize(7);
+          doc.setFont('helvetica', 'normal');
+          doc.text(new Date(msg.timestamp).toLocaleTimeString('fr-FR'), rightMargin - 15, yPosition);
+        }
+        
+        yPosition += 6;
+        
+        // Contenu du message
+        doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        
+        const msgLines = doc.splitTextToSize(msg.contenu || '', rightMargin - leftMargin - 10);
+        msgLines.forEach((line: string) => {
+          if (yPosition > 270) {
+            doc.addPage();
+            yPosition = 25;
+          }
+          doc.text(line, leftMargin + 5, yPosition);
+          yPosition += lineHeight - 1;
+        });
+        
+        yPosition += 4;
+      });
+    }
+    
     // Pied de page professionnel
     const footerY = 280;
     doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
@@ -862,6 +994,117 @@ const ClientDetailsCard: React.FC<ClientDetailsCardProps> = ({ demande, isOpen, 
             </Card>
           )}
 
+          {/* Informations Lead */}
+          {demande.donnees_specifiques && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <FileText className="w-5 h-5" />
+                  Informations Lead
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {demande.donnees_specifiques.lien_agent && (
+                    <div>
+                      <span className="font-medium text-gray-700">Lien agent :</span>
+                      <a 
+                        href={demande.donnees_specifiques.lien_agent} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="ml-2 text-blue-600 hover:underline text-sm break-all"
+                      >
+                        {demande.donnees_specifiques.lien_agent}
+                      </a>
+                    </div>
+                  )}
+                  
+                  {demande.donnees_specifiques.ip_client && (
+                    <div>
+                      <span className="font-medium text-gray-700">IP client :</span>
+                      <span className="ml-2 text-sm">{demande.donnees_specifiques.ip_client}</span>
+                    </div>
+                  )}
+                  
+                  {demande.donnees_specifiques.nombre_messages && (
+                    <div>
+                      <span className="font-medium text-gray-700">Nombre de messages :</span>
+                      <span className="ml-2 text-sm">{demande.donnees_specifiques.nombre_messages}</span>
+                    </div>
+                  )}
+                  
+                  {demande.donnees_specifiques.debut_conversation && (
+                    <div>
+                      <span className="font-medium text-gray-700">Début conversation :</span>
+                      <span className="ml-2 text-sm">
+                        {new Date(demande.donnees_specifiques.debut_conversation).toLocaleDateString('fr-FR')} à {new Date(demande.donnees_specifiques.debut_conversation).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  )}
+                  
+                  {demande.donnees_specifiques.fin_conversation && (
+                    <div>
+                      <span className="font-medium text-gray-700">Fin conversation :</span>
+                      <span className="ml-2 text-sm">
+                        {new Date(demande.donnees_specifiques.fin_conversation).toLocaleDateString('fr-FR')} à {new Date(demande.donnees_specifiques.fin_conversation).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  )}
+
+                  {demande.consentement_rgpd && (
+                    <div className="md:col-span-2">
+                      <span className="font-medium text-gray-700">Consentement RGPD :</span>
+                      <Badge variant={demande.consentement_rgpd.consentement ? "default" : "destructive"} className="ml-2">
+                        {demande.consentement_rgpd.consentement ? "Accepté" : "Refusé"}
+                      </Badge>
+                      {demande.consentement_rgpd.preuve?.ip && (
+                        <span className="ml-2 text-sm text-gray-500">(IP: {demande.consentement_rgpd.preuve.ip})</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Historique conversation */}
+          {demande.donnees_specifiques?.historique_conversation && demande.donnees_specifiques.historique_conversation.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5" />
+                  Historique conversation ({demande.donnees_specifiques.historique_conversation.length} messages)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="max-h-96 overflow-y-auto space-y-3">
+                  {demande.donnees_specifiques.historique_conversation.map((msg: any, index: number) => (
+                    <div 
+                      key={index} 
+                      className={`p-3 rounded-lg ${
+                        msg.role === 'user' 
+                          ? 'bg-blue-50 border-l-4 border-blue-400 ml-4' 
+                          : 'bg-gray-50 border-l-4 border-gray-400 mr-4'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <Badge variant={msg.role === 'user' ? 'default' : 'secondary'} className="text-xs">
+                          {msg.role === 'user' ? 'Client' : 'Agent IA'}
+                        </Badge>
+                        {msg.timestamp && (
+                          <span className="text-xs text-gray-400">
+                            {new Date(msg.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap">{msg.contenu}</p>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Section Email */}
           <Card>
             <CardHeader>
@@ -901,7 +1144,19 @@ const ClientDetailsCard: React.FC<ClientDetailsCardProps> = ({ demande, isOpen, 
           </Card>
         </div>
 
-        <div className="flex justify-end pt-4 border-t">
+        <div className="flex justify-between pt-4 border-t">
+          <Button 
+            onClick={() => {
+              const doc = generateClientDetailsPDF();
+              doc.save(`demande_${demande.nom}_${demande.prenom}_${demande.id.slice(0, 8)}.pdf`);
+              toast.success("PDF téléchargé avec succès");
+            }}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <FileText className="w-4 h-4" />
+            Imprimer PDF
+          </Button>
           <Button onClick={onClose} variant="outline">
             Fermer
           </Button>
