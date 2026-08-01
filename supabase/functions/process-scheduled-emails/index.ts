@@ -91,7 +91,7 @@ ${rappel.description || 'Nous souhaitions faire le point avec vous concernant vo
 N'hésitez pas à nous contacter si vous avez des questions.
 
 Cordialement,
-L'équipe AssureAI
+L'équipe Assure IA
         `.trim())
 
         // Appeler la fonction d'envoi d'email

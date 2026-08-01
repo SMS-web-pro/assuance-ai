@@ -122,7 +122,7 @@ const CreateRdvModal = ({ isOpen, onClose, onRdvCreated, conseillerNom }: Create
 
     const icsContent = `BEGIN:VCALENDAR
 VERSION:2.0
-PRODID:-//AssureAI//FR
+PRODID:-//Assure IA//FR
 BEGIN:VEVENT
 UID:${Date.now()}@assureai.com
 DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').split('.')[0]}Z
@@ -130,7 +130,7 @@ DTSTART:${startDate}
 DTEND:${endDate}
 SUMMARY:${title}
 DESCRIPTION:${description}\\n\\nClient: ${client.nom} ${client.prenom}\\nType: ${client.type_assurance}\\nTéléphone: ${client.telephone}\\nEmail: ${client.email}
-LOCATION:Bureau AssureAI
+LOCATION:Bureau Assure IA
 BEGIN:VALARM
 TRIGGER:-PT15M
 ACTION:DISPLAY

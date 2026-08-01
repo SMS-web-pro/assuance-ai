@@ -382,7 +382,7 @@ const ClientDetailsCard: React.FC<ClientDetailsCardProps> = ({ demande, isOpen, 
     doc.setFontSize(24);
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
-    doc.text('AssureAI', leftMargin, 20);
+    doc.text('Assure IA', leftMargin, 20);
     
     // Sous-titre
     doc.setFontSize(10);
@@ -613,7 +613,7 @@ const ClientDetailsCard: React.FC<ClientDetailsCardProps> = ({ demande, isOpen, 
     doc.setFontSize(8);
     doc.setTextColor(100, 100, 100);
     doc.setFont('helvetica', 'normal');
-    doc.text('AssureAI - Solutions d\'assurance personnalisées', leftMargin, footerY + 8);
+    doc.text('Assure IA - Solutions d\'assurance personnalisées', leftMargin, footerY + 8);
     doc.text(`Généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}`, rightMargin - 60, footerY + 8);
     
     return doc;
@@ -650,7 +650,7 @@ const ClientDetailsCard: React.FC<ClientDetailsCardProps> = ({ demande, isOpen, 
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
               <div style="background: linear-gradient(135deg, #2980b9, #1abc9c); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
-                <h1 style="color: white; margin: 0; font-size: 28px;">AssureAI</h1>
+                <h1 style="color: white; margin: 0; font-size: 28px;">Assure IA</h1>
                 <p style="color: #ecf0f1; margin: 10px 0 0 0; font-size: 16px;">Solutions d'assurance personnalisées</p>
               </div>
               <div style="background: white; padding: 30px; border-radius: 0 0 10px 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
@@ -671,11 +671,11 @@ const ClientDetailsCard: React.FC<ClientDetailsCardProps> = ({ demande, isOpen, 
                 </p>
                 <p style="color: #34495e; line-height: 1.6;">
                   Cordialement,<br/>
-                  <strong>L'équipe AssureAI</strong>
+                  <strong>L'équipe Assure IA</strong>
                 </p>
               </div>
               <div style="text-align: center; padding: 20px; color: #7f8c8d; font-size: 12px;">
-                <p>© ${new Date().getFullYear()} AssureAI - Tous droits réservés</p>
+                <p>© ${new Date().getFullYear()} Assure IA - Tous droits réservés</p>
               </div>
             </div>
           `,

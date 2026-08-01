@@ -101,14 +101,14 @@ export const generateDevisPDF = async (data: DevisData) => {
       // Fallback: afficher le nom de l'entreprise
       doc.setFontSize(10);
       doc.setTextColor(100);
-      doc.text('AssureAI', 20, 25);
+      doc.text('Assure IA', 20, 25);
       logoHeight = 10; // Espace réservé pour le texte
     }
   } else {
     // Pas de logo, afficher le nom de l'entreprise
     doc.setFontSize(12);
     doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-    doc.text('AssureAI', 20, 25);
+    doc.text('Assure IA', 20, 25);
     logoHeight = 10;
   }
 
@@ -124,7 +124,7 @@ export const generateDevisPDF = async (data: DevisData) => {
   doc.setFontSize(10);
   doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
   const companyInfo = [
-    'AssureAI',
+    'Assure IA',
     '123 Rue de l\'Assurance',
     '75001 Paris',
     'Tél: +33 1 23 45 67 89',
@@ -224,7 +224,7 @@ export const generateDevisPDF = async (data: DevisData) => {
   doc.setFontSize(10);
   doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
   doc.text(`Date d'émission: ${new Date().toLocaleDateString('fr-FR')}`, 20, signatureY);
-  doc.text('AssureAI', 150, signatureY);
+  doc.text('Assure IA', 150, signatureY);
 
   return doc;
 };

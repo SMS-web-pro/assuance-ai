@@ -85,7 +85,7 @@ const Settings = () => {
   const [smtpPassword, setSmtpPassword] = useState('');
   const [smtpSecurity, setSmtpSecurity] = useState('tls');
   const [smtpEnabled, setSmtpEnabled] = useState(false);
-  const [senderName, setSenderName] = useState('AssureAI Support');
+  const [senderName, setSenderName] = useState('Assure IA Support');
   const [senderEmail, setSenderEmail] = useState('');
 
   const [isLoading, setIsLoading] = useState(true);
@@ -121,7 +121,7 @@ const Settings = () => {
       setSmtpUsername(settings.smtp_username || '');
       setSmtpPassword(settings.smtp_password || '');
       setSmtpSecurity(settings.smtp_security || 'tls');
-      setSenderName(settings.sender_name || 'AssureAI Support');
+      setSenderName(settings.sender_name || 'Assure IA Support');
       setSenderEmail(settings.sender_email || '');
 
       // Appliquer les paramètres de notification

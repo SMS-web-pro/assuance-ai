@@ -52,7 +52,7 @@ Vous trouverez en pièce jointe le détail de notre proposition tarifaire ainsi 
 N'hésitez pas à nous contacter si vous avez des questions ou si vous souhaitez ajuster certains aspects de votre couverture.
 
 Cordialement,
-L'équipe AssureAI`
+L'équipe Assure IA`
     },
     suivi: {
       subject: `Suivi de votre demande d'assurance ${demande?.type_assurance || ""}`,
@@ -65,7 +65,7 @@ Nous souhaitions faire le point avec vous concernant votre demande d'assurance $
 N'hésitez pas à nous contacter si vous avez des questions ou si vous souhaitez programmer un entretien.
 
 Cordialement,
-L'équipe AssureAI`
+L'équipe Assure IA`
     },
     rappel: {
       subject: `Rappel - Votre demande d'assurance ${demande?.type_assurance || ""}`,
@@ -78,7 +78,7 @@ Pour finaliser votre dossier, nous aurions besoin de quelques informations compl
 Pouvez-vous nous contacter à votre convenance ?
 
 Cordialement,
-L'équipe AssureAI`
+L'équipe Assure IA`
     },
     personnalise: {
       subject: "Votre message personnalisé",

@@ -219,7 +219,7 @@ const DevisGenerationModal = ({ isOpen, onClose, demande }: DevisGenerationModal
             <p>Veuillez trouver ci-joint votre devis d'assurance ${getTypeLabel(demande.type_assurance)}.</p>
             <p>Ce devis est valable 30 jours à compter de la date d'émission.</p>
             <p>N'hésitez pas à nous contacter pour toute question.</p>
-            <p>Cordialement,<br/>${smtpConfig.sender_name || 'AssureAI Support'}</p>
+            <p>Cordialement,<br/>${smtpConfig.sender_name || 'Assure IA Support'}</p>
           </div>
         `,
         attachments: [
@@ -238,7 +238,7 @@ const DevisGenerationModal = ({ isOpen, onClose, demande }: DevisGenerationModal
             pass: smtpConfig.password
           },
           from: {
-            name: smtpConfig.sender_name || 'AssureAI Support',
+            name: smtpConfig.sender_name || 'Assure IA Support',
             email: smtpConfig.sender_email || smtpConfig.username
           }
         }

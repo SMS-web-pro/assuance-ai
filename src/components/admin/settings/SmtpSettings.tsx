@@ -221,7 +221,7 @@ const SmtpSettings = ({
       setSmtpUsername("");
       setSmtpPassword("");
       setSmtpSecurity("tls");
-      setSenderName("AssureAI Support");
+      setSenderName("Assure IA Support");
       setSenderEmail("");
       setSmtpEnabled(false);
       
@@ -437,7 +437,7 @@ const SmtpSettings = ({
                 <Input
                   value={senderName}
                   onChange={(e) => setSenderName(e.target.value)}
-                  placeholder="AssureAI Support"
+                  placeholder="Assure IA Support"
                   className="bg-white dark:bg-gray-900 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
                 />
               </div>

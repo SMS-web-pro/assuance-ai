@@ -143,7 +143,7 @@ serve(async (req) => {
 
     // Configuration de l'email
     const mailOptions = {
-      from: `${smtpConfig.sender_name || 'AssureAI'} <${smtpConfig.sender_email || smtpConfig.username}>`,
+      from: `${smtpConfig.sender_name || 'Assure IA'} <${smtpConfig.sender_email || smtpConfig.username}>`,
       to: to,
       cc: cc || undefined,
       subject: subject,

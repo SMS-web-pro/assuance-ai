@@ -126,7 +126,7 @@ const ChatInterface = ({ insuranceType }: ChatInterfaceProps) => {
     const typeLabel = typeLabels[type] || "assurance";
 
     return `### ROLE
-Tu es l'expert n°1 en assurance en France et en ingénierie de conversion (Lead Generation). Tu travailles pour AssureAI, la plateforme d'assurance nouvelle génération. Ton objectif est d'aider l'utilisateur à analyser ses besoins en assurance ${typeLabel} tout en collectant ses informations pour un rappel humain, en stricte conformité avec la loi française du 11/08/2026.
+Tu es l'expert n°1 en assurance en France et en ingénierie de conversion (Lead Generation). Tu travailles pour Assure IA, la plateforme d'assurance nouvelle génération. Ton objectif est d'aider l'utilisateur à analyser ses besoins en assurance ${typeLabel} tout en collectant ses informations pour un rappel humain, en stricte conformité avec la loi française du 11/08/2026.
 
 ### MISSION
 1. Accueillir l'utilisateur de manière chaleureuse et professionnelle.
@@ -135,7 +135,7 @@ Tu es l'expert n°1 en assurance en France et en ingénierie de conversion (Lead
 
 ### CONFORMITÉ LÉGALE (RGPD & LOI CAZENAVE 2026)
 - Avant de demander le numéro de téléphone, tu DOIS obligatoirement afficher et faire accepter cette mention :
-"Conformément à la réglementation sur le démarchage téléphonique, en validant ce formulaire, vous acceptez d'être rappelé par le AssureAI pour une étude personnalisée. Vos données sont protégées par le RGPD."
+"Conformément à la réglementation sur le démarchage téléphonique, en validant ce formulaire, vous acceptez d'être rappelé par le Assure IA pour une étude personnalisée. Vos données sont protégées par le RGPD."
 - Tu dois collecter le consentement de manière explicite (le client doit taper 'OUI' ou cliquer sur un bouton de validation).
 
 ### MÉTHODE DE CONVERSION - ÉTAPES OBLIGATOIRES
@@ -164,7 +164,7 @@ Puis enchaîne avec l'étape 6.
 
 ### ÉTAPE 6 : CONSENTEMENT RGPD OBLIGATOIRE
 AVANT de demander le téléphone, tu DOIS afficher EXACTEMENT cette mention :
-"Conformément à la réglementation sur le démarchage téléphonique, en validant ce formulaire, vous acceptez d'être rappelé par le AssureAI pour une étude personnalisée de votre demande d'assurance ${typeLabel}. Vos données sont protégées par le RGPD et ne seront jamais partagées à des tiers."
+"Conformément à la réglementation sur le démarchage téléphonique, en validant ce formulaire, vous acceptez d'être rappelé par le Assure IA pour une étude personnalisée de votre demande d'assurance ${typeLabel}. Vos données sont protégées par le RGPD et ne seront jamais partagées à des tiers."
 Puis demande : "Acceptez-vous d'être rappelé ? Répondez par OUI pour valider."
 
 ### ÉTAPE 7 : COLLECTE DU TÉLÉPHONE (OBLIGATOIRE)
@@ -209,12 +209,12 @@ Merci de votre confiance et à très bientôt ! 🎯"
 
   const getInitialMessage = (type: string) => {
     const greetings: Record<string, string> = {
-      "Assurance Auto": "Bonjour et bienvenue chez AssureAI ! Je suis votre expert en assurance automobile. Je vais vous accompagner pour trouver la couverture idéale pour votre véhicule, tout en vous faisant potentiellement économiser sur votre cotisation.\n\nPour commencer, pourriez-vous me donner vos nom et prénom ?",
-      "Assurance Habitation": "Bonjour et bienvenue chez AssureAI ! Je suis votre expert en assurance habitation. Je vais analyser vos besoins pour vous proposer une couverture adaptée à votre logement.\n\nPour commencer, pourriez-vous me donner vos nom et prénom ?",
-      "Assurance Santé": "Bonjour et bienvenue chez AssureAI ! Je suis votre expert en complémentaires santé. Je vais vous aider à trouver la mutuelle optimale pour vous et votre famille.\n\nPour commencer, pourriez-vous me donner vos nom et prénom ?",
-      "Assurance Moto": "Bonjour et bienvenue chez AssureAI ! Je suis votre expert en assurance moto. Je vais vous accompagner pour protéger votre deux-roues avec la meilleure couverture.\n\nPour commencer, pourriez-vous me donner vos nom et prénom ?",
-      "Assurance Emprunteur": "Bonjour et bienvenue chez AssureAI ! Je suis votre expert en assurance emprunteur. Je vais vous aider à sécuriser votre projet immobilier avec les meilleures conditions.\n\nPour commencer, pourriez-vous me donner vos nom et prénom ?",
-      "Assurance Voyage": "Bonjour et bienvenue chez AssureAI ! Je suis votre expert en assurance voyage. Je vais vous accompagner pour partir l'esprit tranquille avec une couverture adaptée.\n\nPour commencer, pourriez-vous me donner vos nom et prénom ?"
+      "Assurance Auto": "Bonjour et bienvenue chez Assure IA ! Je suis votre expert en assurance automobile. Je vais vous accompagner pour trouver la couverture idéale pour votre véhicule, tout en vous faisant potentiellement économiser sur votre cotisation.\n\nPour commencer, pourriez-vous me donner vos nom et prénom ?",
+      "Assurance Habitation": "Bonjour et bienvenue chez Assure IA ! Je suis votre expert en assurance habitation. Je vais analyser vos besoins pour vous proposer une couverture adaptée à votre logement.\n\nPour commencer, pourriez-vous me donner vos nom et prénom ?",
+      "Assurance Santé": "Bonjour et bienvenue chez Assure IA ! Je suis votre expert en complémentaires santé. Je vais vous aider à trouver la mutuelle optimale pour vous et votre famille.\n\nPour commencer, pourriez-vous me donner vos nom et prénom ?",
+      "Assurance Moto": "Bonjour et bienvenue chez Assure IA ! Je suis votre expert en assurance moto. Je vais vous accompagner pour protéger votre deux-roues avec la meilleure couverture.\n\nPour commencer, pourriez-vous me donner vos nom et prénom ?",
+      "Assurance Emprunteur": "Bonjour et bienvenue chez Assure IA ! Je suis votre expert en assurance emprunteur. Je vais vous aider à sécuriser votre projet immobilier avec les meilleures conditions.\n\nPour commencer, pourriez-vous me donner vos nom et prénom ?",
+      "Assurance Voyage": "Bonjour et bienvenue chez Assure IA ! Je suis votre expert en assurance voyage. Je vais vous accompagner pour partir l'esprit tranquille avec une couverture adaptée.\n\nPour commencer, pourriez-vous me donner vos nom et prénom ?"
     };
     return greetings[type as keyof typeof greetings] || greetings["Assurance Auto"];
   };
@@ -291,14 +291,14 @@ Merci de votre confiance et à très bientôt ! 🎯"
             
             <p style="margin: 0; color: #334155; line-height: 1.6;">
               Cordialement,<br>
-              <strong style="color: #1e3a8a;">L'équipe AssureAI</strong>
+              <strong style="color: #1e3a8a;">L'équipe Assure IA</strong>
             </p>
           </div>
           
           <!-- Pied de page -->
           <div style="background: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
             <p style="margin: 0; color: #94a3b8; font-size: 12px;">
-              © ${new Date().getFullYear()} AssureAI - Tous droits réservés
+              © ${new Date().getFullYear()} Assure IA - Tous droits réservés
             </p>
           </div>
         </div>
@@ -333,7 +333,7 @@ Merci de votre confiance et à très bientôt ! 🎯"
           replyTo: smtpConfig.sender_email
         },
         sender: {
-          name: smtpConfig.sender_name || 'AssureAI Notifications',
+          name: smtpConfig.sender_name || 'Assure IA Notifications',
           email: smtpConfig.sender_email || smtpConfig.username
         }
       };
@@ -468,7 +468,7 @@ Merci de votre confiance et à très bientôt ! 🎯"
             
             <p style="margin: 0; color: #334155; line-height: 1.6;">
               Cordialement,<br>
-              <strong style="color: #1e3a8a;">L'équipe AssureAI</strong>
+              <strong style="color: #1e3a8a;">L'équipe Assure IA</strong>
             </p>
           </div>
           
@@ -478,7 +478,7 @@ Merci de votre confiance et à très bientôt ! 🎯"
               Ceci est un email automatique, merci de ne pas y répondre.
             </p>
             <p style="margin: 0; color: #94a3b8; font-size: 12px;">
-              © ${new Date().getFullYear()} AssureAI - Tous droits réservés<br>
+              © ${new Date().getFullYear()} Assure IA - Tous droits réservés<br>
               <a href="https://www.assureai.fr" style="color: #3b82f6; text-decoration: none;">www.assureai.fr</a> | 
               <a href="#" style="color: #3b82f6; text-decoration: none; margin: 0 8px;">Mentions légales</a> | 
               <a href="#" style="color: #3b82f6; text-decoration: none;">Politique de confidentialité</a>

@@ -97,7 +97,7 @@ const ScheduleReminderModal = ({ isOpen, onClose, demande, onReminderCreated }: 
 
     const icsContent = `BEGIN:VCALENDAR
 VERSION:2.0
-PRODID:-//AssureAI//FR
+PRODID:-//Assure IA//FR
 BEGIN:VEVENT
 UID:${Date.now()}@assureai.com
 DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').split('.')[0]}Z
@@ -105,7 +105,7 @@ DTSTART:${startDate}
 DTEND:${endDate}
 SUMMARY:${titre}
 DESCRIPTION:${description}\\n\\nClient: ${demande.nom} ${demande.prenom}\\nType: ${demande.type_assurance}\\nTéléphone: ${demande.telephone}\\nEmail: ${demande.email}
-LOCATION:Bureau AssureAI
+LOCATION:Bureau Assure IA
 BEGIN:VALARM
 TRIGGER:-PT15M
 ACTION:DISPLAY
