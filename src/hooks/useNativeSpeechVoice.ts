@@ -240,28 +240,28 @@ export const useNativeSpeechVoice = ({
             const part = parts[i].trim();
             if (part.length > 2) {
               const isLast = i === parts.length - 1;
-              let pauseAfter = 100; // Virgule par défaut
+              let pauseAfter = 50; // Virgule par défaut
               
               if (isLast) {
-                if (sentence.endsWith('.')) pauseAfter = 250;
-                else if (sentence.endsWith('!')) pauseAfter = 250;
-                else if (sentence.endsWith('?')) pauseAfter = 250;
-                else pauseAfter = 200;
+                if (sentence.endsWith('.')) pauseAfter = 120;
+                else if (sentence.endsWith('!')) pauseAfter = 120;
+                else if (sentence.endsWith('?')) pauseAfter = 120;
+                else pauseAfter = 100;
               }
               
               chunks.push({ text: part, pauseAfter });
             }
           }
         } else {
-          let pauseAfter = 250; // Défaut = point
-          if (sentence.endsWith('.')) pauseAfter = 250;
-          else if (sentence.endsWith('!')) pauseAfter = 250;
-          else if (sentence.endsWith('?')) pauseAfter = 250;
-          else if (sentence.endsWith(':')) pauseAfter = 200;
-          else if (sentence.endsWith(';')) pauseAfter = 150;
+          let pauseAfter = 120; // Défaut = point
+          if (sentence.endsWith('.')) pauseAfter = 120;
+          else if (sentence.endsWith('!')) pauseAfter = 120;
+          else if (sentence.endsWith('?')) pauseAfter = 120;
+          else if (sentence.endsWith(':')) pauseAfter = 80;
+          else if (sentence.endsWith(';')) pauseAfter = 60;
           
           // Bonus respiration pour phrases longues
-          if (sentence.length > 80) pauseAfter += 100;
+          if (sentence.length > 80) pauseAfter += 50;
           
           chunks.push({ text: sentence, pauseAfter });
         }
@@ -274,20 +274,20 @@ export const useNativeSpeechVoice = ({
   // Configuration vocale par agent avec différenciation homme/femme
   const getAgentVoiceConfig = useCallback((agentName: string, gender: 'male' | 'female') => {
     const configs: Record<string, { rate: number; pitch: number; volume: number }> = {
-      // HOMMES : voix graves, rythme naturel
-      'Marc Dubois':      { rate: 1.05, pitch: 0.70, volume: 0.88 },
-      'Alex Moreau':      { rate: 1.10, pitch: 0.72, volume: 0.88 },
-      'Pierre Delacroix': { rate: 1.00, pitch: 0.65, volume: 0.87 },
+      // HOMMES : voix graves, chacun avec un caractère distinct
+      'Marc Dubois':      { rate: 1.05, pitch: 0.68, volume: 0.88 },  // Posé, professional
+      'Alex Moreau':      { rate: 1.12, pitch: 0.75, volume: 0.90 },  // Dynamique, rapide
+      'Pierre Delacroix': { rate: 0.98, pitch: 0.62, volume: 0.85 },  // Sérieux, lent
       
-      // FEMMES : voix aigües, rythme naturel
-      'Sophie Martin':      { rate: 1.08, pitch: 1.28, volume: 0.86 },
-      'Dr. Claire Rousseau': { rate: 1.02, pitch: 1.25, volume: 0.85 },
-      'Camille Durand':     { rate: 1.12, pitch: 1.35, volume: 0.90 }
+      // FEMMES : voix aigües, chacune avec un caractère distinct
+      'Sophie Martin':      { rate: 1.06, pitch: 1.30, volume: 0.87 },  // Chaleureuse, posée
+      'Dr. Claire Rousseau': { rate: 1.00, pitch: 1.22, volume: 0.84 },  // Experte, calme
+      'Camille Durand':     { rate: 1.15, pitch: 1.40, volume: 0.92 }   // Énergique, vive
     };
 
     return configs[agentName] || (gender === 'male' 
       ? { rate: 1.05, pitch: 0.70, volume: 0.88 }
-      : { rate: 1.08, pitch: 1.28, volume: 0.86 }
+      : { rate: 1.08, pitch: 1.30, volume: 0.87 }
     );
   }, []);
 
