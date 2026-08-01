@@ -585,21 +585,15 @@ const ClientDetailsCard: React.FC<ClientDetailsCardProps> = ({ demande, isOpen, 
         
         y += 6;
         
-        // Contenu
+        // Contenu - sans limite de lignes
         doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
         doc.setFontSize(8);
         doc.setFont('helvetica', 'normal');
         
         const msgLines = doc.splitTextToSize(msg.contenu || '', pw - 30);
-        const maxL = Math.min(msgLines.length, 6);
-        for (let i = 0; i < maxL; i++) {
+        for (let i = 0; i < msgLines.length; i++) {
+          checkPage(10);
           doc.text(msgLines[i], lm + 25, y);
-          y += 4;
-        }
-        if (msgLines.length > 6) {
-          doc.setFont('helvetica', 'italic');
-          doc.setTextColor(150, 150, 150);
-          doc.text(`... +${msgLines.length - 6} lignes`, lm + 25, y);
           y += 4;
         }
         
@@ -615,7 +609,7 @@ const ClientDetailsCard: React.FC<ClientDetailsCardProps> = ({ demande, isOpen, 
     const totalPages = doc.getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {
       doc.setPage(i);
-      const fy = 285;
+      const fy = 275;
       doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
       doc.setLineWidth(0.5);
       doc.line(lm, fy, rm, fy);
@@ -624,9 +618,10 @@ const ClientDetailsCard: React.FC<ClientDetailsCardProps> = ({ demande, isOpen, 
       doc.setFontSize(7);
       doc.setTextColor(100, 100, 100);
       doc.setFont('helvetica', 'normal');
-      doc.text('ASSURE IA', lm, fy + 8);
+      doc.text('ASSURE IA - Solutions d\'assurance nouvelle génération', lm, fy + 8);
       doc.text(`Page ${i}/${totalPages}`, rm - 20, fy + 8);
-      doc.text(new Date().toLocaleDateString('fr-FR'), lm, fy + 13);
+      doc.text(`Généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}`, lm, fy + 14);
+      doc.text('Document confidentiel - Usage interne', rm - 45, fy + 14);
     }
     
     return doc;
