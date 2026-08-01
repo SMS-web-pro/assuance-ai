@@ -194,6 +194,15 @@ const SmtpSettings = ({
     setIsSavingSmtp(true);
 
     try {
+      // Vérifier s'il existe déjà une config par défaut
+      const { data: existingConfigs } = await supabase
+        .from('smtp_configs')
+        .select('id')
+        .eq('is_default', true)
+        .limit(1);
+
+      const isFirstConfig = !existingConfigs || existingConfigs.length === 0;
+
       const { error } = await supabase
         .from('smtp_configs')
         .insert({
@@ -206,7 +215,7 @@ const SmtpSettings = ({
           sender_name: senderName,
           sender_email: senderEmail,
           enabled: smtpEnabled,
-          is_default: false
+          is_default: isFirstConfig
         });
 
       if (error) throw error;
