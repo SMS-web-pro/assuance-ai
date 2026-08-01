@@ -60,7 +60,6 @@ export const useNativeSpeechVoice = ({
     }
   }, [expertGender, expertName, isActive]);
 
-  // Sélection optimale de voix avec critères améliorés
   const selectOptimalVoice = useCallback((voices: SpeechSynthesisVoice[], gender: 'male' | 'female', agentName: string) => {
     if (voices.length === 0 || !isActive) {
       console.warn('Aucune voix disponible ou composant inactif');
@@ -72,7 +71,6 @@ export const useNativeSpeechVoice = ({
     let bestVoice: SpeechSynthesisVoice | null = null;
     let bestScore = 0;
 
-    // Mapping avancé des voix par agent avec préférences qualité
     const voiceMapping: Record<string, { 
       preferred: string[], 
       fallback: string[],
@@ -117,7 +115,6 @@ export const useNativeSpeechVoice = ({
       const voiceName = voice.name.toLowerCase();
       const voiceLang = voice.lang.toLowerCase();
 
-      // Score priorité maximale pour correspondance exacte
       for (let i = 0; i < agentConfig.preferred.length; i++) {
         if (voiceName.includes(agentConfig.preferred[i].toLowerCase())) {
           score += (200 - i * 20);
@@ -125,7 +122,6 @@ export const useNativeSpeechVoice = ({
         }
       }
 
-      // Score fallback
       for (let i = 0; i < agentConfig.fallback.length; i++) {
         if (voiceName.includes(agentConfig.fallback[i])) {
           score += (100 - i * 15);
@@ -133,7 +129,6 @@ export const useNativeSpeechVoice = ({
         }
       }
 
-      // Score par genre avec bonus spécial
       const isMale = voiceName.includes('paul') || voiceName.includes('thomas') || voiceName.includes('henri') || voiceName.includes('male');
       const isFemale = voiceName.includes('marie') || voiceName.includes('julie') || voiceName.includes('hortense') || voiceName.includes('female');
 
@@ -141,20 +136,16 @@ export const useNativeSpeechVoice = ({
         score += 150;
       }
 
-      // Bonus qualité premium
       if (voiceName.includes('microsoft')) score += 80;
       if (voiceName.includes('google')) score += 70;
       if (voiceName.includes('premium')) score += 60;
       if (voiceName.includes('enhanced')) score += 50;
 
-      // Bonus langue française parfaite
       if (voiceLang === 'fr-fr') score += 40;
       if (voiceLang.startsWith('fr-')) score += 30;
 
-      // Bonus voix locale (plus naturelle)
       if (voice.localService) score += 25;
 
-      // Bonus voix par défaut du système (souvent de meilleure qualité)
       if (voice.default) score += 15;
 
       if (score > bestScore) {
@@ -163,9 +154,7 @@ export const useNativeSpeechVoice = ({
       }
     }
     
-    // Si aucune voix n'a été sélectionnée, essayer de trouver une voix française ou prendre la première disponible
     if (!bestVoice) {
-      // Essayer de trouver une voix française
       const frenchVoice = voices.find(v => v.lang.toLowerCase().includes('fr'));
       bestVoice = frenchVoice || voices[0];
       console.warn('Aucune voix optimale trouvée, utilisation de:', bestVoice?.name || 'première voix disponible');
@@ -184,75 +173,141 @@ export const useNativeSpeechVoice = ({
     }
   }, [isActive]);
 
-  // Nettoyage avancé du texte avec préservation de l'expressivité
+  // Nettoyage professionnel du texte pour une voix naturelle et humaine
   const cleanTextForSpeech = useCallback((text: string): string => {
     let cleanedText = text;
     
-    // Préserver les expressions d'émotion importantes
-    const emotionMarkers = {
-      '!': ' !',
-      '?': ' ?',
-      '...': ', pause,',
-      '😊': ', avec le sourire,',
-      '👍': ', parfait,',
-      '📞': ', au téléphone,',
-      '✅': ', c\'est validé,',
-      '🎯': ', exactement,',
-      '💡': ', bonne idée,'
+    // 1. Corrections phonétiques françaises pour prononciation correcte
+    const frenchPhonetics: Record<string, string> = {
+      'prenom': 'prénom',
+      'numero': 'numéro',
+      'telephone': 'téléphone',
+      'medecin': 'médecin',
+      'securite': 'sécurité',
+      'societe': 'société',
+      'activite': 'activité',
+      'qualite': 'qualité',
+      'vehicule': 'véhicule',
+      'general': 'général',
+      'medical': 'médical',
+      'hopital': 'hôpital',
+      'euros': 'euros',
+      'informations': 'informations',
+      'professionnel': 'professionnel',
+      'démarchage': 'démarchage',
+      'conformément': 'conformément',
+      'réglementation': 'réglementation'
     };
 
-    // Remplacer les marqueurs d'émotion avant nettoyage
-    Object.entries(emotionMarkers).forEach(([marker, replacement]) => {
-      cleanedText = cleanedText.replace(new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), replacement);
+    Object.entries(frenchPhonetics).forEach(([wrong, correct]) => {
+      const regex = new RegExp(`\\b${wrong}\\b`, 'gi');
+      cleanedText = cleanedText.replace(regex, correct);
     });
 
-    // Nettoyer le markdown et formatage
+    // 2. Développement des abréviations et symboles
+    const abbreviations: Record<string, string> = {
+      'M.': 'Monsieur',
+      'Mme': 'Madame',
+      'Mlle': 'Mademoiselle',
+      'Dr': 'Docteur',
+      'Pr': 'Professeur',
+      'RDV': 'rendez-vous',
+      '€': 'euros',
+      '%': 'pour cent',
+      '&': 'et',
+      '@': 'arobase',
+      '01': 'zéro un',
+      '02': 'zéro deux',
+      '03': 'zéro trois',
+      '04': 'zéro quatre',
+      '05': 'zéro cinq',
+      '06': 'zéro six',
+      '07': 'zéro sept',
+      '08': 'zéro huit',
+      '09': 'zéro neuf'
+    };
+
+    Object.entries(abbreviations).forEach(([abbrev, full]) => {
+      const regex = new RegExp(`\\b${abbrev.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'g');
+      cleanedText = cleanedText.replace(regex, full);
+    });
+
+    // 3. Supprimer markdown et formatage
     cleanedText = cleanedText
       .replace(/\*\*/g, '')
       .replace(/\*/g, '')
       .replace(/#{1,6}\s/g, '')
       .replace(/`{1,3}[^`]*`{1,3}/g, '')
       .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-      .replace(/\(.*?\)/g, '')
-      
-    // Supprimer tous les autres emojis
-    cleanedText = cleanedText.replace(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F900}-\u{1F9FF}]|[\u{1FA70}-\u{1FAFF}]/gu, '')
-      
-    // Améliorer la ponctuation pour l'expressivité
+      .replace(/\(.*?\)/g, '');
+
+    // 4. Supprimer emojis sauf les ponctuations
+    cleanedText = cleanedText.replace(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F900}-\u{1F9FF}]|[\u{1FA70}-\u{1FAFF}]/gu, '');
+
+    // 5. Ponctuation naturelle pour pauses humaines
     cleanedText = cleanedText
-      .replace(/\s+/g, ' ')
-      .replace(/([.!?])\s*([A-Z])/g, '$1 $2') // Assurer espaces après ponctuation
-      .replace(/,\s*/g, ', ') // Normaliser les virgules
-      .replace(/:\s*/g, ' : ') // Améliorer les deux-points
+      .replace(/\.\.\./g, ', pause,') // Trois points = pause
+      .replace(/—/g, ', pause,') // Tiret long = pause
+      .replace(/–/g, ', pause,') // Tiret moyen = pause
+      .replace(/([.!?])\s+/g, '$1, ') // Après ponctuation = micro-pause
+      .replace(/([,;:])\s*/g, '$1 ') // Virgules propres
+      .replace(/:\s*/g, ' : ') // Deux-points espacés
+      .replace(/\s+/g, ' ') // Espaces multiples = un seul
       .trim();
 
     return cleanedText;
   }, []);
 
-  // Analyse du sentiment pour adaptation vocale
+  // Analyse émotionnelle avancée pour modulation vocale naturelle
   const analyzeTextEmotion = useCallback((text: string, agentName: string) => {
     const lowerText = text.toLowerCase();
     
-    // Émotions par type d'agent
-    const agentPersonalities = {
-      'Marc Dubois': { baseRate: 0.88, basePitch: 0.85, confidence: 1.2 },
-      'Sophie Martin': { baseRate: 0.92, basePitch: 1.08, warmth: 1.3 },
-      'Dr. Claire Rousseau': { baseRate: 0.85, basePitch: 1.05, expertise: 1.4 },
-      'Alex Moreau': { baseRate: 0.95, basePitch: 0.82, energy: 1.5 },
-      'Pierre Delacroix': { baseRate: 0.82, basePitch: 0.78, authority: 1.3 },
-      'Camille Durand': { baseRate: 0.98, basePitch: 1.12, enthusiasm: 1.4 }
+    // Personnalités vocales optimisées pour chaque agent
+    const agentPersonalities: Record<string, { 
+      baseRate: number; 
+      basePitch: number; 
+      baseVolume: number;
+      warmth: number;
+      confidence: number;
+      expertise: number;
+    }> = {
+      'Marc Dubois': { 
+        baseRate: 0.82, basePitch: 0.88, baseVolume: 0.95,
+        warmth: 1.1, confidence: 1.3, expertise: 1.2
+      },
+      'Sophie Martin': { 
+        baseRate: 0.85, basePitch: 1.05, baseVolume: 0.94,
+        warmth: 1.3, confidence: 1.1, expertise: 1.2
+      },
+      'Dr. Claire Rousseau': { 
+        baseRate: 0.80, basePitch: 1.02, baseVolume: 0.93,
+        warmth: 1.2, confidence: 1.2, expertise: 1.5
+      },
+      'Alex Moreau': { 
+        baseRate: 0.88, basePitch: 0.90, baseVolume: 0.96,
+        warmth: 1.0, confidence: 1.2, expertise: 1.1
+      },
+      'Pierre Delacroix': { 
+        baseRate: 0.78, basePitch: 0.82, baseVolume: 0.94,
+        warmth: 0.9, confidence: 1.4, expertise: 1.3
+      },
+      'Camille Durand': { 
+        baseRate: 0.86, basePitch: 1.08, baseVolume: 0.95,
+        warmth: 1.2, confidence: 1.1, expertise: 1.0
+      }
     };
 
-    const personality = agentPersonalities[agentName as keyof typeof agentPersonalities] || agentPersonalities['Sophie Martin'];
+    const personality = agentPersonalities[agentName] || agentPersonalities['Sophie Martin'];
 
-    const emotions = {
-      joie: ['merci', 'parfait', 'excellent', 'super', 'génial', 'formidable', 'bravo', 'félicitations', 'content', 'ravi', 'magnifique'],
-      enthousiasme: ['fantastique', 'incroyable', 'extraordinaire', 'merveilleux', 'sensationnel'],
-      inquiétude: ['problème', 'soucis', 'difficile', 'compliqué', 'inquiet', 'préoccupé', 'grave', 'attention'],
-      urgence: ['urgent', 'rapidement', 'vite', 'immédiatement', 'important', 'pressé', 'crucial'],
-      politesse: ['bonjour', 'bonsoir', 's\'il vous plaît', 'merci', 'excusez-moi', 'pardon', 'veuillez'],
-      expertise: ['technique', 'spécialisé', 'professionnel', 'expert', 'précisément', 'exactement'],
-      empathie: ['comprends', 'ressens', 'accompagne', 'soutien', 'aide', 'écoute']
+    // Détection d'émotions par mots-clés français
+    const emotionKeywords = {
+      joie: ['merci', 'parfait', 'excellent', 'super', 'génial', 'formidable', 'bravo', 'félicitations', 'content', 'ravi', 'magnifique', 'wonderful'],
+      enthousiasme: ['fantastique', 'incroyable', 'extraordinaire', 'merveilleux', 'sensationnel', 'exceptionnel'],
+      inquiétude: ['problème', 'soucis', 'difficile', 'compliqué', 'inquiet', 'préoccupé', 'grave', 'attention', 'risque'],
+      urgence: ['urgent', 'rapidement', 'vite', 'immédiatement', 'important', 'pressé', 'crucial', 'dès que possible'],
+      politesse: ['bonjour', 'bonsoir', 's\'il vous plaît', 'merci', 'excusez-moi', 'pardon', 'veuillez', 'je vous en prie'],
+      expertise: ['technique', 'spécialisé', 'professionnel', 'expert', 'précisément', 'exactement', 'conformément'],
+      empathie: ['comprends', 'ressens', 'accompagne', 'soutien', 'aide', 'écoute', 'accompagner', 'vous accompagne']
     };
 
     let emotionIntensity = {
@@ -264,8 +319,7 @@ export const useNativeSpeechVoice = ({
       empathy: 0
     };
 
-    // Calculer l'intensité émotionnelle
-    Object.entries(emotions).forEach(([emotion, keywords]) => {
+    Object.entries(emotionKeywords).forEach(([emotion, keywords]) => {
       const matches = keywords.filter(keyword => lowerText.includes(keyword)).length;
       switch (emotion) {
         case 'joie': emotionIntensity.joy += matches * 2; break;
@@ -283,12 +337,14 @@ export const useNativeSpeechVoice = ({
       personality,
       isQuestion: text.includes('?'),
       isExclamation: text.includes('!'),
-      isLong: text.length > 100,
-      hasNumbers: /\d/.test(text)
+      isLong: text.length > 150,
+      hasNumbers: /\d/.test(text),
+      hasEmail: /@/.test(text),
+      sentenceCount: text.split(/[.!?]+/).filter(s => s.trim().length > 3).length
     };
   }, []);
 
-  // Synthèse vocale ultra-optimisée avec expressivité
+  // Synthèse vocale professionnelle avec pauses naturelles
   const speakWithNativeAPI = useCallback(async (text: string) => {
     if (!isActive) {
       console.log('🔇 Agent inactif - pas de synthèse vocale');
@@ -323,50 +379,112 @@ export const useNativeSpeechVoice = ({
       
       const emotion = analyzeTextEmotion(cleanedText, expertName);
       
-      // Configuration avancée selon l'émotion et la personnalité
+      // Configuration vocale professionnelle avec modulation naturelle
       let voiceConfig = {
         rate: emotion.personality.baseRate,
         pitch: emotion.personality.basePitch,
-        volume: 0.95
+        volume: emotion.personality.baseVolume
       };
 
-      // Adaptation dynamique selon le contenu
+      // Modulation dynamique selon l'émotion détectée
       if (emotion.joy > 0) {
-        voiceConfig.rate *= 1.08; // Plus rapide pour la joie
-        voiceConfig.pitch *= expertGender === 'female' ? 1.12 : 1.08;
-        voiceConfig.volume = 0.98;
+        voiceConfig.rate *= 1.05;
+        voiceConfig.pitch *= expertGender === 'female' ? 1.08 : 1.05;
+        voiceConfig.volume = Math.min(1.0, voiceConfig.volume * 1.03);
       } else if (emotion.concern > 0) {
-        voiceConfig.rate *= 0.85; // Plus lent pour l'inquiétude
-        voiceConfig.pitch *= 0.92;
-        voiceConfig.volume = 0.90;
-      } else if (emotion.urgency > 0) {
-        voiceConfig.rate *= 1.05; // Rythme soutenu pour l'urgence
-        voiceConfig.pitch *= 1.02;
-        voiceConfig.volume = 0.96;
-      } else if (emotion.expertise > 0) {
-        voiceConfig.rate *= 0.88; // Plus posé pour l'expertise
+        voiceConfig.rate *= 0.88;
         voiceConfig.pitch *= 0.95;
-        voiceConfig.volume = 0.93;
+        voiceConfig.volume *= 0.95;
+      } else if (emotion.urgency > 0) {
+        voiceConfig.rate *= 1.02;
+        voiceConfig.pitch *= 1.01;
+      } else if (emotion.expertise > 0) {
+        voiceConfig.rate *= 0.92;
+        voiceConfig.pitch *= 0.98;
       } else if (emotion.empathy > 0) {
-        voiceConfig.rate *= 0.90; // Chaleureux pour l'empathie
-        voiceConfig.pitch *= expertGender === 'female' ? 1.05 : 0.88;
-        voiceConfig.volume = 0.94;
+        voiceConfig.rate *= 0.90;
+        voiceConfig.pitch *= expertGender === 'female' ? 1.03 : 0.95;
+        voiceConfig.volume *= 0.97;
       }
 
-      // Ajustements spéciaux selon la longueur
-      if (emotion.isLong) {
-        voiceConfig.rate *= 0.95; // Légèrement plus lent pour les longs textes
+      // Ajustements contextuels
+      if (emotion.isLong) voiceConfig.rate *= 0.95;
+      if (emotion.hasNumbers) voiceConfig.rate *= 0.92;
+      if (emotion.isQuestion) voiceConfig.pitch *= 1.05;
+      if (emotion.isExclamation) voiceConfig.volume = Math.min(1.0, voiceConfig.volume * 1.05);
+
+      // Borner les valeurs
+      voiceConfig.rate = Math.max(0.6, Math.min(1.2, voiceConfig.rate));
+      voiceConfig.pitch = Math.max(0.7, Math.min(1.3, voiceConfig.pitch));
+      voiceConfig.volume = Math.max(0.8, Math.min(1.0, voiceConfig.volume));
+
+      // Segmentation intelligente pour pauses naturelles
+      const sentences = cleanedText.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 3);
+      
+      if (sentences.length > 2) {
+        console.log(`📝 Lecture segmentée: ${sentences.length} phrases | Rate: ${voiceConfig.rate.toFixed(2)} | Pitch: ${voiceConfig.pitch.toFixed(2)}`);
+        
+        let currentSentence = 0;
+        
+        const speakNextSentence = () => {
+          if (currentSentence < sentences.length && isActive) {
+            const sentence = sentences[currentSentence].trim();
+            if (sentence.length > 0) {
+              const sentenceUtterance = new SpeechSynthesisUtterance(sentence);
+              
+              sentenceUtterance.voice = selectedVoice;
+              sentenceUtterance.lang = 'fr-FR';
+              sentenceUtterance.rate = voiceConfig.rate;
+              sentenceUtterance.pitch = voiceConfig.pitch;
+              sentenceUtterance.volume = voiceConfig.volume;
+              
+              sentenceUtterance.onend = () => {
+                currentSentence++;
+                if (currentSentence < sentences.length) {
+                  // Pause dynamique selon la ponctuation
+                  const prevChar = sentence.slice(-1);
+                  let pauseDuration = 250; // Défaut
+                  
+                  if (prevChar === '.') pauseDuration = 400; // Fin de phrase
+                  else if (prevChar === '!') pauseDuration = 450; // Exclamation
+                  else if (prevChar === '?') pauseDuration = 450; // Question
+                  else if (prevChar === ',') pauseDuration = 200; // Virgule
+                  else if (prevChar === ':') pauseDuration = 300; // Deux-points
+                  
+                  // Micro-respiration pour phrases longues
+                  if (sentence.length > 80) pauseDuration += 150;
+                  
+                  setTimeout(speakNextSentence, pauseDuration);
+                } else {
+                  setIsSpeaking(false);
+                  utteranceRef.current = null;
+                  console.log('✅ Lecture segmentée terminée');
+                }
+              };
+              
+              sentenceUtterance.onerror = () => {
+                setIsSpeaking(false);
+                utteranceRef.current = null;
+                console.error('❌ Erreur lecture segmentée');
+              };
+              
+              utteranceRef.current = sentenceUtterance;
+              speechSynthesis.speak(sentenceUtterance);
+            } else {
+              currentSentence++;
+              speakNextSentence();
+            }
+          } else {
+            setIsSpeaking(false);
+            utteranceRef.current = null;
+          }
+        };
+        
+        speakNextSentence();
+        return;
       }
 
-      if (emotion.hasNumbers) {
-        voiceConfig.rate *= 0.90; // Plus lent pour les chiffres
-      }
-
-      // Borner les valeurs pour éviter les extrêmes
-      voiceConfig.rate = Math.max(0.5, Math.min(2.0, voiceConfig.rate));
-      voiceConfig.pitch = Math.max(0.5, Math.min(2.0, voiceConfig.pitch));
-      voiceConfig.volume = Math.max(0.7, Math.min(1.0, voiceConfig.volume));
-
+      // Texte court : lecture directe
       const utterance = new SpeechSynthesisUtterance(cleanedText);
       utteranceRef.current = utterance;
       
@@ -378,13 +496,13 @@ export const useNativeSpeechVoice = ({
 
       utterance.onstart = () => {
         setIsSpeaking(true);
-        console.log(`🎙️ 🔊 Lecture optimisée: "${text.substring(0, 50)}..." | Rate: ${voiceConfig.rate.toFixed(2)} | Pitch: ${voiceConfig.pitch.toFixed(2)}`);
+        console.log(`🎙️ 🔊 Lecture professionnelle: "${text.substring(0, 50)}..." | Rate: ${voiceConfig.rate.toFixed(2)} | Pitch: ${voiceConfig.pitch.toFixed(2)}`);
       };
 
       utterance.onend = () => {
         setIsSpeaking(false);
         utteranceRef.current = null;
-        console.log('✅ Lecture terminée avec expressivité');
+        console.log('✅ Lecture terminée');
       };
 
       utterance.onerror = (error) => {
@@ -392,61 +510,6 @@ export const useNativeSpeechVoice = ({
         utteranceRef.current = null;
         console.error('❌ Erreur synthèse vocale:', error);
       };
-
-      // Gestion des pauses naturelles pour les longs textes
-      if (cleanedText.length > 200) {
-        const sentences = cleanedText.split(/[.!?]+/).filter(s => s.trim().length > 5);
-        
-        if (sentences.length > 2) {
-          console.log(`📝 Lecture segmentée: ${sentences.length} phrases`);
-          
-          let currentSentence = 0;
-          
-          const speakNextSentence = () => {
-            if (currentSentence < sentences.length && isActive) {
-              const sentence = sentences[currentSentence].trim();
-              if (sentence.length > 0) {
-                const sentenceUtterance = new SpeechSynthesisUtterance(sentence);
-                
-                sentenceUtterance.voice = selectedVoice;
-                sentenceUtterance.lang = 'fr-FR';
-                sentenceUtterance.rate = voiceConfig.rate;
-                sentenceUtterance.pitch = voiceConfig.pitch;
-                sentenceUtterance.volume = voiceConfig.volume;
-                
-                sentenceUtterance.onend = () => {
-                  currentSentence++;
-                  if (currentSentence < sentences.length) {
-                    // Pause naturelle entre phrases
-                    setTimeout(speakNextSentence, 300);
-                  } else {
-                    setIsSpeaking(false);
-                    utteranceRef.current = null;
-                    console.log('✅ Lecture segmentée terminée');
-                  }
-                };
-                
-                sentenceUtterance.onerror = () => {
-                  setIsSpeaking(false);
-                  utteranceRef.current = null;
-                  console.error('❌ Erreur lecture segmentée');
-                };
-                
-                speechSynthesis.speak(sentenceUtterance);
-              } else {
-                currentSentence++;
-                speakNextSentence();
-              }
-            } else {
-              setIsSpeaking(false);
-              utteranceRef.current = null;
-            }
-          };
-          
-          speakNextSentence();
-          return;
-        }
-      }
 
       speechSynthesis.speak(utterance);
 
@@ -468,7 +531,6 @@ export const useNativeSpeechVoice = ({
     console.log('🔇 Synthèse vocale arrêtée');
   }, []);
 
-  // Réinitialiser le suivi du nom quand la conversation se termine
   const resetConversation = useCallback(() => {
     hasSpokenNameRef.current = false;
     console.log('🔄 Réinitialisation du suivi du nom de l\'utilisateur');
