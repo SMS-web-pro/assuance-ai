@@ -1,7 +1,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { generateEdgeTTS, FRENCH_VOICES } from '@/lib/edgeTTS';
+import { supabase } from '@/integrations/supabase/client';
 
 interface UseNativeSpeechVoiceProps {
   onTranscript?: (text: string) => void;
@@ -10,6 +10,11 @@ interface UseNativeSpeechVoiceProps {
   expertName?: string;
   isActive?: boolean;
 }
+
+const EDGE_TTS_VOICES: Record<string, Record<string, string>> = {
+  'female': { default: 'fr-FR-DeniseNeural', vivienne: 'fr-FR-VivienneNeural' },
+  'male': { default: 'fr-FR-HenriNeural' },
+};
 
 export const useNativeSpeechVoice = ({ 
   onTranscript, 
@@ -371,7 +376,7 @@ export const useNativeSpeechVoice = ({
     return { rateMod, pitchMod, volumeMod };
   }, []);
 
-  // Edge TTS -高品质微软语音合成 (client-side)
+  // Edge TTS via Supabase Edge Function
   const speakWithEdgeTTS = useCallback(async (text: string) => {
     if (!isActive) {
       console.log('🔇 Agent inactif');
@@ -401,33 +406,37 @@ export const useNativeSpeechVoice = ({
     const baseConfig = getAgentVoiceConfig(expertName, expertGender);
     const emotion = analyzeEmotion(cleanedText);
 
-    // Convert rate/pitch to Edge TTS format (percentage offset)
     const ratePercent = Math.round((baseConfig.rate * emotion.rateMod - 1) * 100);
     const pitchPercent = Math.round((baseConfig.pitch * emotion.pitchMod - 1) * 50);
 
-    // Get voice name
     let voiceName = expertGender === 'male' 
-      ? FRENCH_VOICES.male.henri 
-      : FRENCH_VOICES.female.denise;
+      ? EDGE_TTS_VOICES.male.default 
+      : EDGE_TTS_VOICES.female.default;
     
-    // Map agent names to specific voices
     if (expertName.includes('Vivienne') || expertName.includes('Claire')) {
-      voiceName = FRENCH_VOICES.female.vivienne;
+      voiceName = EDGE_TTS_VOICES.female.vivienne;
     }
 
     console.log(`🎤 Edge TTS: voice=${voiceName}, rate=${ratePercent}%, pitch=${pitchPercent}%`);
 
     try {
-      const audioBuffer = await generateEdgeTTS({
-        text: cleanedText,
-        voice: voiceName,
-        speed: ratePercent,
-        pitch: pitchPercent,
-        volume: 0,
+      const { data, error } = await supabase.functions.invoke('edge-tts', {
+        body: {
+          text: cleanedText,
+          voice: voiceName,
+          speed: ratePercent,
+          pitch: pitchPercent,
+          volume: 0,
+        },
       });
 
-      // Play the audio
-      const audioBlob = new Blob([audioBuffer], { type: 'audio/mpeg' });
+      if (error) {
+        console.error('❌ Edge TTS error:', error);
+        speakWithNativeAPI(text);
+        return;
+      }
+
+      const audioBlob = new Blob([data], { type: 'audio/mpeg' });
       const audioUrl = URL.createObjectURL(audioBlob);
       
       const audio = new Audio(audioUrl);
@@ -451,7 +460,6 @@ export const useNativeSpeechVoice = ({
       
     } catch (error) {
       console.error('❌ Edge TTS exception:', error);
-      // Fallback to browser TTS
       speakWithNativeAPI(text);
     }
   }, [isActive, cleanTextForSpeech, getAgentVoiceConfig, analyzeEmotion, expertName, expertGender]);
