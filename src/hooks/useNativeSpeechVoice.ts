@@ -356,7 +356,7 @@ export const useNativeSpeechVoice = ({
     );
   }, [isMobile]);
 
-  // Analyse émotionnelle pour modulation légère
+  // Analyse émotionnelle pour modulation plus forte
   const analyzeEmotion = useCallback((text: string) => {
     const lower = text.toLowerCase();
     
@@ -364,42 +364,54 @@ export const useNativeSpeechVoice = ({
     let pitchMod = 1.0;
     let volumeMod = 1.0;
 
-    // Joie / enthousiasme - légère accélération
-    if (/(?:merci|parfait|excellent|super|génial|formidable|bravo|content|ravi)/.test(lower)) {
-      rateMod *= 1.05;
-      pitchMod *= 1.03;
-      volumeMod *= 1.02;
+    // Joie / enthousiasme - accélération marquée
+    if (/(?:merci|parfait|excellent|super|génial|formidable|bravo|content|ravi|fantastique|magnifique)/.test(lower)) {
+      rateMod *= 1.12;
+      pitchMod *= 1.08;
+      volumeMod *= 1.05;
     }
 
-    // Inquiétude / problème - légère décélération
-    if (/(?:problème|soucis|difficile|compliqué|inquiet|grave|attention|risque)/.test(lower)) {
-      rateMod *= 0.95;
-      pitchMod *= 0.97;
-      volumeMod *= 0.98;
+    // Inquiétude / problème - décélération marquée
+    if (/(?:problème|soucis|difficile|compliqué|inquiet|grave|attention|risque|malheureusement|dommage)/.test(lower)) {
+      rateMod *= 0.88;
+      pitchMod *= 0.92;
+      volumeMod *= 0.95;
     }
 
-    // Urgence
-    if (/(?:urgent|rapidement|vite|immédiatement|crucial|dès que possible)/.test(lower)) {
-      rateMod *= 1.08;
-      pitchMod *= 1.02;
+    // Urgence - accélération forte
+    if (/(?:urgent|rapidement|vite|immédiatement|crucial|dès que possible|important)/.test(lower)) {
+      rateMod *= 1.15;
+      pitchMod *= 1.05;
     }
 
-    // Expertise / sérieux
+    // Expertise / sérieux - ralentissement
     if (/(?:technique|spécialisé|professionnel|expert|précisément|conformément|réglementation)/.test(lower)) {
-      rateMod *= 0.95;
-      pitchMod *= 0.98;
+      rateMod *= 0.90;
+      pitchMod *= 0.95;
     }
 
-    // Empathie / chaleur
-    if (/(?:comprends|accompagne|soutien|aide|écoute|accompagner|vous accompagne)/.test(lower)) {
-      rateMod *= 0.95;
-      pitchMod *= 1.02;
-      volumeMod *= 0.98;
+    // Empathie / chaleur - ralenti et doux
+    if (/(?:comprends|accompagne|soutien|aide|écoute|accompagner|vous accompagne|rassurez)/.test(lower)) {
+      rateMod *= 0.90;
+      pitchMod *= 1.05;
+      volumeMod *= 0.96;
+    }
+
+    // Salutation / accueil - enthousiaste
+    if (/(?:bonjour|salut|hey|bonsoir|coucou|hello)/.test(lower)) {
+      rateMod *= 1.05;
+      pitchMod *= 1.08;
+      volumeMod *= 1.03;
     }
 
     // Exclamation
     if (text.includes('!')) {
-      volumeMod *= 1.02;
+      volumeMod *= 1.05;
+      rateMod *= 0.97;
+    }
+
+    // Point d'interrogation - légère pause
+    if (text.includes('?')) {
       rateMod *= 0.98;
     }
 
@@ -429,7 +441,7 @@ export const useNativeSpeechVoice = ({
     }
   }, []);
 
-  // Synthèse vocale native
+  // Synthèse vocale native avec chunking pour pauses naturelles
   const speakWithNativeAPI = useCallback(async (text: string) => {
     if (!isActive) {
       console.log('🔇 Agent inactif');
@@ -469,43 +481,95 @@ export const useNativeSpeechVoice = ({
     const emotion = analyzeEmotion(cleanedText);
 
     const finalConfig = {
-      rate: Math.max(0.7, Math.min(1.2, baseConfig.rate * emotion.rateMod)),
-      pitch: Math.max(0.7, Math.min(1.3, baseConfig.pitch * emotion.pitchMod)),
+      rate: Math.max(0.7, Math.min(1.3, baseConfig.rate * emotion.rateMod)),
+      pitch: Math.max(0.7, Math.min(1.4, baseConfig.pitch * emotion.pitchMod)),
       volume: 1.0
     };
 
     console.log(`🎙️ Lecture: ${isMobile ? 'MOBILE' : 'DESKTOP'} | Voice: ${selectedVoice.name} | Rate: ${finalConfig.rate.toFixed(2)} | Pitch: ${finalConfig.pitch.toFixed(2)}`);
 
-    const utterance = new SpeechSynthesisUtterance(cleanedText);
-    utteranceRef.current = utterance;
+    // Découper en chunks pour pauses naturelles
+    const chunks = splitIntoNaturalChunks(cleanedText);
+    
+    if (chunks.length <= 1) {
+      // Texte court - lecture directe
+      const utterance = new SpeechSynthesisUtterance(cleanedText);
+      utteranceRef.current = utterance;
 
-    utterance.voice = selectedVoice;
-    utterance.lang = 'fr-FR';
-    utterance.rate = finalConfig.rate;
-    utterance.pitch = finalConfig.pitch;
-    utterance.volume = finalConfig.volume;
+      utterance.voice = selectedVoice;
+      utterance.lang = 'fr-FR';
+      utterance.rate = finalConfig.rate;
+      utterance.pitch = finalConfig.pitch;
+      utterance.volume = finalConfig.volume;
 
-    utterance.onstart = () => {
-      console.log(`🔊 Début de la lecture`);
-    };
+      utterance.onstart = () => {
+        console.log(`🔊 Début de la lecture`);
+      };
 
-    utterance.onend = () => {
-      setIsSpeaking(false);
-      utteranceRef.current = null;
-      releaseWakeLock();
-      console.log('✅ Lecture terminée');
-    };
+      utterance.onend = () => {
+        setIsSpeaking(false);
+        utteranceRef.current = null;
+        releaseWakeLock();
+        console.log('✅ Lecture terminée');
+      };
 
-    utterance.onerror = (error) => {
-      console.error('❌ Erreur synthèse:', error);
-      setIsSpeaking(false);
-      utteranceRef.current = null;
-      releaseWakeLock();
-    };
+      utterance.onerror = (error) => {
+        console.error('❌ Erreur synthèse:', error);
+        setIsSpeaking(false);
+        utteranceRef.current = null;
+        releaseWakeLock();
+      };
 
-    speechSynthesis.speak(utterance);
+      speechSynthesis.speak(utterance);
+    } else {
+      // Texte long - lecture par chunks avec pauses
+      console.log(`📝 ${chunks.length} chunks détectés pour lecture naturelle`);
+      
+      let chunkIndex = 0;
+      
+      const speakNextChunk = () => {
+        if (chunkIndex >= chunks.length) {
+          setIsSpeaking(false);
+          utteranceRef.current = null;
+          releaseWakeLock();
+          console.log('✅ Lecture par chunks terminée');
+          return;
+        }
+        
+        const chunk = chunks[chunkIndex];
+        const utterance = new SpeechSynthesisUtterance(chunk.text);
+        utteranceRef.current = utterance;
+        
+        utterance.voice = selectedVoice;
+        utterance.lang = 'fr-FR';
+        utterance.rate = finalConfig.rate;
+        utterance.pitch = finalConfig.pitch;
+        utterance.volume = finalConfig.volume;
+        
+        utterance.onstart = () => {
+          console.log(`🔊 Chunk ${chunkIndex + 1}/${chunks.length}: "${chunk.text.substring(0, 30)}..."`);
+        };
+        
+        utterance.onend = () => {
+          chunkIndex++;
+          // Pause naturelle entre les chunks
+          setTimeout(speakNextChunk, chunk.pauseAfter);
+        };
+        
+        utterance.onerror = (error) => {
+          console.error('❌ Erreur synthèse chunk:', error);
+          setIsSpeaking(false);
+          utteranceRef.current = null;
+          releaseWakeLock();
+        };
+        
+        speechSynthesis.speak(utterance);
+      };
+      
+      speakNextChunk();
+    }
 
-  }, [selectedVoice, expertGender, expertName, cleanTextForSpeech, getAgentVoiceConfig, analyzeEmotion, isActive, isMobile, requestWakeLock, releaseWakeLock]);
+  }, [selectedVoice, expertGender, expertName, cleanTextForSpeech, getAgentVoiceConfig, analyzeEmotion, splitIntoNaturalChunks, isActive, isMobile, requestWakeLock, releaseWakeLock]);
 
   const stopSpeaking = useCallback(() => {
     console.log('🛑 Arrêt synthèse vocale');
