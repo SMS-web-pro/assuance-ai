@@ -212,7 +212,7 @@ export const useNativeSpeechVoice = ({
   const cleanTextForSpeech = useCallback((text: string): string => {
     let cleanedText = text;
     
-// Supprimer markdown, emojis et symbols
+    // Supprimer markdown, emojis et symbols
     cleanedText = cleanedText
       .replace(/\*\*/g, '')
       .replace(/\*/g, '')
@@ -237,19 +237,7 @@ export const useNativeSpeechVoice = ({
       // Supprimer pipes de tableau
       .replace(/\|/g, '')
       // Supprimer crochets et accolades vides
-      .replace(/[\[\]{}]/g, '')
-      // Supprimer les numéros d'étapes (1., 2., etc.) et les mots "ÉTAPE X"
-      .replace(/\b\d+\.\s+/g, '')
-      .replace(/\bÉTAPE\s+\d+\b/gi, '')
-      .replace(/\bétape\s+\d+\b/gi, '')
-      // Supprimer les titres de sections (###)
-      .replace(/###\s+[^\n]+\n*/g, '')
-      // Supprimer les lignes commençant par un numéro suivi d'un point
-      .replace(/^\d+\.\s.*$/gm, '')
-      // Supprimer les instructions entre parenthèses (sauf si c'est un numéro de téléphone)
-      .replace(/\([^)]*(?:réécris|réinvente|adapte|inspire|exemple|format|conseil|remarque|note)[^)]*\)/gi, '')
-      // Supprimer les guillemets superflus
-      .replace(/["""''«»]/g, '');
+      .replace(/[\[\]{}]/g, '');
 
     // Corrections françaises
     const corrections: Record<string, string> = {
@@ -328,36 +316,36 @@ export const useNativeSpeechVoice = ({
     // Sur mobile, les voix sont différentes et les rate/pitch doivent être plus distincts
     const configs: Record<string, { rate: number; pitch: number; volume: number }> = {
       // HOMMES - tous Paul, mais chaque agent a un rythme et ton TRÈS différents
-'Marc Dubois':      { 
-        rate: isMobile ? 0.88 : 0.90, 
-        pitch: isMobile ? 0.95 : 0.85, 
+      'Marc Dubois':      { 
+        rate: isMobile ? 0.85 : 0.90, 
+        pitch: isMobile ? 0.90 : 0.85, 
         volume: 1.0 
       },
       'Alex Moreau':      { 
-        rate: isMobile ? 1.00 : 1.10, 
-        pitch: isMobile ? 1.05 : 1.00, 
+        rate: isMobile ? 1.15 : 1.10, 
+        pitch: isMobile ? 1.10 : 1.00, 
         volume: 1.0 
       },
       'Pierre Delacroix': { 
-        rate: isMobile ? 0.80 : 0.80, 
-        pitch: isMobile ? 0.85 : 0.75, 
+        rate: isMobile ? 0.75 : 0.80, 
+        pitch: isMobile ? 0.80 : 0.75, 
         volume: 1.0 
       },
       
       // FEMMES - Hortense et Julie, chaque agent a un rythme et ton TRÈS différents
       'Sophie Martin':      { 
-        rate: isMobile ? 0.90 : 0.92, 
-        pitch: isMobile ? 1.15 : 1.15, 
+        rate: isMobile ? 0.88 : 0.92, 
+        pitch: isMobile ? 1.20 : 1.15, 
         volume: 1.0 
       },
       'Dr. Claire Rousseau': { 
-        rate: isMobile ? 0.88 : 0.88, 
+        rate: isMobile ? 0.82 : 0.88, 
         pitch: isMobile ? 1.10 : 1.05, 
         volume: 1.0 
       },
       'Camille Durand':     { 
-        rate: isMobile ? 1.05 : 1.08, 
-        pitch: isMobile ? 1.20 : 1.25, 
+        rate: isMobile ? 1.12 : 1.08, 
+        pitch: isMobile ? 1.30 : 1.25, 
         volume: 1.0 
       }
     };
@@ -441,7 +429,7 @@ export const useNativeSpeechVoice = ({
     }
   }, []);
 
-// Synthèse vocale native avec découpage en chunks pour pauses naturelles
+  // Synthèse vocale native
   const speakWithNativeAPI = useCallback(async (text: string) => {
     if (!isActive) {
       console.log('🔇 Agent inactif');
@@ -488,65 +476,36 @@ export const useNativeSpeechVoice = ({
 
     console.log(`🎙️ Lecture: ${isMobile ? 'MOBILE' : 'DESKTOP'} | Voice: ${selectedVoice.name} | Rate: ${finalConfig.rate.toFixed(2)} | Pitch: ${finalConfig.pitch.toFixed(2)}`);
 
-    // Découper le texte en chunks pour des pauses naturelles
-    const chunks = splitIntoNaturalChunks(cleanedText);
+    const utterance = new SpeechSynthesisUtterance(cleanedText);
+    utteranceRef.current = utterance;
 
-    let currentChunkIndex = 0;
+    utterance.voice = selectedVoice;
+    utterance.lang = 'fr-FR';
+    utterance.rate = finalConfig.rate;
+    utterance.pitch = finalConfig.pitch;
+    utterance.volume = finalConfig.volume;
 
-    const speakChunk = () => {
-      if (currentChunkIndex >= chunks.length) {
-        setIsSpeaking(false);
-        utteranceRef.current = null;
-        releaseWakeLock();
-        console.log('✅ Lecture terminée');
-        return;
-      }
-
-      const chunk = chunks[currentChunkIndex];
-      const utterance = new SpeechSynthesisUtterance(chunk.text);
-      utteranceRef.current = utterance;
-
-      utterance.voice = selectedVoice;
-      utterance.lang = 'fr-FR';
-      utterance.rate = finalConfig.rate;
-      utterance.pitch = finalConfig.pitch;
-      utterance.volume = finalConfig.volume;
-
-      utterance.onstart = () => {
-        console.log(`🔊 Chunk ${currentChunkIndex + 1}/${chunks.length}: "${chunk.text.substring(0, 40)}..."`);
-      };
-
-      utterance.onend = () => {
-        currentChunkIndex++;
-        if (currentChunkIndex < chunks.length) {
-          // Pause naturelle entre les chunks
-          setTimeout(speakChunk, chunk.pauseAfter);
-        } else {
-          setIsSpeaking(false);
-          utteranceRef.current = null;
-          releaseWakeLock();
-          console.log('✅ Lecture terminée');
-        }
-      };
-
-      utterance.onerror = (error) => {
-        console.error('❌ Erreur synthèse chunk:', error);
-        currentChunkIndex++;
-        if (currentChunkIndex < chunks.length) {
-          setTimeout(speakChunk, 200);
-        } else {
-          setIsSpeaking(false);
-          utteranceRef.current = null;
-          releaseWakeLock();
-        }
-      };
-
-      speechSynthesis.speak(utterance);
+    utterance.onstart = () => {
+      console.log(`🔊 Début de la lecture`);
     };
 
-    speakChunk();
+    utterance.onend = () => {
+      setIsSpeaking(false);
+      utteranceRef.current = null;
+      releaseWakeLock();
+      console.log('✅ Lecture terminée');
+    };
 
-  }, [selectedVoice, expertGender, expertName, cleanTextForSpeech, splitIntoNaturalChunks, getAgentVoiceConfig, analyzeEmotion, isActive, isMobile, requestWakeLock, releaseWakeLock]);
+    utterance.onerror = (error) => {
+      console.error('❌ Erreur synthèse:', error);
+      setIsSpeaking(false);
+      utteranceRef.current = null;
+      releaseWakeLock();
+    };
+
+    speechSynthesis.speak(utterance);
+
+  }, [selectedVoice, expertGender, expertName, cleanTextForSpeech, getAgentVoiceConfig, analyzeEmotion, isActive, isMobile, requestWakeLock, releaseWakeLock]);
 
   const stopSpeaking = useCallback(() => {
     console.log('🛑 Arrêt synthèse vocale');
