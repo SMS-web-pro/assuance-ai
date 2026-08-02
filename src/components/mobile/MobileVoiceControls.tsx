@@ -34,7 +34,7 @@ const MobileVoiceControls = ({
       recognitionRef.current.continuous = false;
       recognitionRef.current.interimResults = false;
       recognitionRef.current.lang = 'fr-FR';
-      recognitionRef.current.maxAlternatives = 1;
+      recognitionRef.current.maxAlternatives = 3; // Plus d'alternatives pour meilleure précision mobile
       
       recognitionRef.current.onstart = () => {
         setIsRecording(true);
@@ -42,15 +42,25 @@ const MobileVoiceControls = ({
       };
       
       recognitionRef.current.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        console.log('🎤 Transcript reçu:', transcript);
-        setTranscript(transcript);
+        // Sélectionner la meilleure alternative parmi les 3
+        let bestTranscript = event.results[0][0].transcript;
+        let bestConfidence = event.results[0][0].confidence;
         
-        if (transcript.trim() && onVoiceMessage) {
-          onVoiceMessage(transcript);
+        for (let i = 1; i < Math.min(event.results[0].length, 3); i++) {
+          if (event.results[0][i].confidence > bestConfidence) {
+            bestConfidence = event.results[0][i].confidence;
+            bestTranscript = event.results[0][i].transcript;
+          }
+        }
+        
+        console.log('🎤 Transcript reçu (mobile optimisé):', bestTranscript, `Confidence: ${bestConfidence.toFixed(2)}`);
+        setTranscript(bestTranscript);
+        
+        if (bestTranscript.trim() && onVoiceMessage) {
+          onVoiceMessage(bestTranscript);
           toast({
             title: "Message vocal envoyé",
-            description: transcript,
+            description: bestTranscript,
           });
         }
       };

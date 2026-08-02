@@ -50,9 +50,25 @@ export const useElevenLabsVoice = ({
     });
   }, []);
 
+  // Ajout de fillers conversationnels naturels pour ElevenLabs
+  const addNaturalFillers = useCallback((text: string): string => {
+    // Probabilité de 10% d'ajouter un filler (plus conservateur pour ElevenLabs)
+    if (Math.random() > 0.10) return text;
+    
+    const fillers = ['euh', 'hum', 'alors', 'voilà', 'en fait', 'du coup'];
+    const filler = fillers[Math.floor(Math.random() * fillers.length)];
+    
+    // Ajouter au début si la phrase commence par une conjonction
+    if (/^(et|mais|ou|donc|car)/i.test(text.trim())) {
+      return `${filler}, ${text}`;
+    }
+    
+    return text;
+  }, []);
+
   // Fonction pour nettoyer le texte avant lecture vocale
   const cleanTextForSpeech = useCallback((text: string): string => {
-    return text
+    let cleaned = text
       // Supprimer les caractères markdown
       .replace(/\*\*/g, '') // gras
       .replace(/\*/g, '') // italique
@@ -86,6 +102,11 @@ export const useElevenLabsVoice = ({
       .replace(/\s+/g, ' ')
       .replace(/[\u200B-\u200D\uFEFF]/g, '') // espaces invisibles
       .trim();
+    
+    // Ajouterdes fillers naturels
+    cleaned = addNaturalFillers(cleaned);
+    
+    return cleaned;
   }, []);
 
   // Fonction pour convertir le texte en audio avec ElevenLabs
@@ -130,9 +151,9 @@ export const useElevenLabsVoice = ({
           text: cleanedText,
           model_id: 'eleven_multilingual_v2', // Modèle multilingue v2 pour le français
           voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.8,
-            style: 0.2,
+            stability: 0.35,        // Plus de variation pour effet humain (0.5 → 0.35)
+            similarity_boost: 0.75, // Plus naturel et varié (0.8 → 0.75)
+            style: 0.45,            // Plus d'expression émotionnelle (0.2 → 0.45)
             use_speaker_boost: true
           }
         })
