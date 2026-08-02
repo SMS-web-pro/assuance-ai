@@ -11,15 +11,9 @@ interface UseNativeSpeechVoiceProps {
   isActive?: boolean;
 }
 
-// Détecter mobile
 const isMobileDevice = () => {
   if (typeof navigator === 'undefined') return false;
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-};
-
-const EDGE_TTS_VOICES: Record<string, Record<string, string>> = {
-  'female': { default: 'fr-FR-DeniseNeural', vivienne: 'fr-FR-VivienneNeural' },
-  'male': { default: 'fr-FR-HenriNeural' },
 };
 
 export const useNativeSpeechVoice = ({ 
@@ -35,14 +29,13 @@ export const useNativeSpeechVoice = ({
   const [lastMessage, setLastMessage] = useState<string>('');
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
-  const [useEdgeTTS, setUseEdgeTTS] = useState(false);
   
   const recognitionRef = useRef<any>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const isManualStopRef = useRef<boolean>(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const hasSpokenNameRef = useRef<boolean>(false);
+  const wakeLockRef = useRef<SentinelWakeLock | null>(null);
   const { toast } = useToast();
   const isMobile = isMobileDevice();
 
@@ -413,95 +406,30 @@ export const useNativeSpeechVoice = ({
     return { rateMod, pitchMod, volumeMod };
   }, []);
 
-  // Edge TTS via Supabase Edge Function
-  const speakWithEdgeTTS = useCallback(async (text: string) => {
-    if (!isActive) {
-      console.log('🔇 Agent inactif');
-      return;
-    }
-
-    if (!text || text.trim().length < 2) {
-      console.warn('⚠️ Texte trop court');
-      return;
-    }
-
-    const cleanedText = cleanTextForSpeech(text);
-    if (!cleanedText || cleanedText.trim().length < 2) {
-      console.warn('⚠️ Texte nettoyé trop court');
-      return;
-    }
-
-    // Stop any current audio
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current = null;
-    }
-
-    setLastMessage(text);
-    setIsSpeaking(true);
-
-    const baseConfig = getAgentVoiceConfig(expertName, expertGender);
-    const emotion = analyzeEmotion(cleanedText);
-
-    const ratePercent = Math.round((baseConfig.rate * emotion.rateMod - 1) * 100);
-    const pitchPercent = Math.round((baseConfig.pitch * emotion.pitchMod - 1) * 50);
-
-    let voiceName = expertGender === 'male' 
-      ? EDGE_TTS_VOICES.male.default 
-      : EDGE_TTS_VOICES.female.default;
-    
-    if (expertName.includes('Vivienne') || expertName.includes('Claire')) {
-      voiceName = EDGE_TTS_VOICES.female.vivienne;
-    }
-
-    console.log(`🎤 Edge TTS: voice=${voiceName}, rate=${ratePercent}%, pitch=${pitchPercent}%`);
-
+  // Wake Lock API - empêcher l'écran de s'éteindre sur mobile
+  const requestWakeLock = useCallback(async () => {
+    if (!isMobile || !('wakeLock' in navigator)) return;
     try {
-      const { data, error } = await supabase.functions.invoke('edge-tts', {
-        body: {
-          text: cleanedText,
-          voice: voiceName,
-          speed: ratePercent,
-          pitch: pitchPercent,
-          volume: 0,
-        },
+      wakeLockRef.current = await navigator.wakeLock.request('screen');
+      console.log('🔒 Wake Lock actif');
+      wakeLockRef.current.addEventListener('release', () => {
+        console.log('🔓 Wake Lock libéré');
       });
-
-      if (error) {
-        console.error('❌ Edge TTS error:', error);
-        speakWithNativeAPI(text);
-        return;
-      }
-
-      const audioBlob = new Blob([data], { type: 'audio/mpeg' });
-      const audioUrl = URL.createObjectURL(audioBlob);
-      
-      const audio = new Audio(audioUrl);
-      audioRef.current = audio;
-      
-      audio.onended = () => {
-        setIsSpeaking(false);
-        audioRef.current = null;
-        URL.revokeObjectURL(audioUrl);
-        console.log('✅ Edge TTS lecture terminée');
-      };
-      
-      audio.onerror = (e) => {
-        console.error('❌ Audio playback error:', e);
-        setIsSpeaking(false);
-        audioRef.current = null;
-        URL.revokeObjectURL(audioUrl);
-      };
-      
-      await audio.play();
-      
-    } catch (error) {
-      console.error('❌ Edge TTS exception:', error);
-      speakWithNativeAPI(text);
+    } catch (err) {
+      console.log('⚠️ Wake Lock non disponible:', err);
     }
-  }, [isActive, cleanTextForSpeech, getAgentVoiceConfig, analyzeEmotion, expertName, expertGender]);
+  }, [isMobile]);
 
-  // Synthèse vocale native (fallback)
+  const releaseWakeLock = useCallback(async () => {
+    if (wakeLockRef.current) {
+      try {
+        await wakeLockRef.current.release();
+        wakeLockRef.current = null;
+      } catch (err) {}
+    }
+  }, []);
+
+  // Synthèse vocale native
   const speakWithNativeAPI = useCallback(async (text: string) => {
     if (!isActive) {
       console.log('🔇 Agent inactif');
@@ -524,25 +452,29 @@ export const useNativeSpeechVoice = ({
       return;
     }
 
+    // Annuler toute lecture en cours
     if (utteranceRef.current) {
       speechSynthesis.cancel();
       utteranceRef.current = null;
     }
 
+    // Activer le Wake Lock sur mobile
+    await requestWakeLock();
+
     setLastMessage(text);
     setIsSpeaking(true);
 
+    // Config vocale selon l'agent
     const baseConfig = getAgentVoiceConfig(expertName, expertGender);
     const emotion = analyzeEmotion(cleanedText);
 
     const finalConfig = {
       rate: Math.max(0.7, Math.min(1.2, baseConfig.rate * emotion.rateMod)),
       pitch: Math.max(0.7, Math.min(1.3, baseConfig.pitch * emotion.pitchMod)),
-      volume: Math.max(0.8, Math.min(1.0, baseConfig.volume * emotion.volumeMod))
+      volume: 1.0
     };
 
-    // Parler tout le texte d'un coup pour un rendu plus naturel
-    console.log(`🎙️ Lecture: Rate: ${finalConfig.rate.toFixed(2)} | Pitch: ${finalConfig.pitch.toFixed(2)}`);
+    console.log(`🎙️ Lecture: ${isMobile ? 'MOBILE' : 'DESKTOP'} | Voice: ${selectedVoice.name} | Rate: ${finalConfig.rate.toFixed(2)} | Pitch: ${finalConfig.pitch.toFixed(2)}`);
 
     const utterance = new SpeechSynthesisUtterance(cleanedText);
     utteranceRef.current = utterance;
@@ -560,6 +492,7 @@ export const useNativeSpeechVoice = ({
     utterance.onend = () => {
       setIsSpeaking(false);
       utteranceRef.current = null;
+      releaseWakeLock();
       console.log('✅ Lecture terminée');
     };
 
@@ -567,11 +500,12 @@ export const useNativeSpeechVoice = ({
       console.error('❌ Erreur synthèse:', error);
       setIsSpeaking(false);
       utteranceRef.current = null;
+      releaseWakeLock();
     };
 
     speechSynthesis.speak(utterance);
 
-  }, [selectedVoice, expertGender, expertName, cleanTextForSpeech, getAgentVoiceConfig, analyzeEmotion, isActive]);
+  }, [selectedVoice, expertGender, expertName, cleanTextForSpeech, getAgentVoiceConfig, analyzeEmotion, isActive, isMobile, requestWakeLock, releaseWakeLock]);
 
   const stopSpeaking = useCallback(() => {
     console.log('🛑 Arrêt synthèse vocale');
@@ -774,15 +708,13 @@ export const useNativeSpeechVoice = ({
     isSupported,
     startListening,
     stopListening,
-    speak: useEdgeTTS ? speakWithEdgeTTS : speakWithNativeAPI,
+    speak: speakWithNativeAPI,
     stopSpeaking,
     replayLastMessage,
     resetConversation,
     availableVoices,
     selectedVoice,
-    setSelectedVoice,
-    useEdgeTTS,
-    setUseEdgeTTS
+    setSelectedVoice
   };
 };
 
