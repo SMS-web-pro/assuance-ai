@@ -82,142 +82,74 @@ export const useNativeSpeechVoice = ({
       return;
     }
 
-    console.log(`🔍 Sélection voix ${gender} pour ${agentName} - ${voices.length} voix disponibles:`, voices.map(v => v.name));
+    // LOG COMPLET pour debug - voir toutes les voix disponibles
+    console.log(`🔍 === DEBUG VOIX ${gender.toUpperCase()} pour ${agentName} ===`);
+    console.log(`📱 Plateforme: ${isMobile ? 'MOBILE' : 'DESKTOP'}`);
+    console.log(`🎵 Total voix: ${voices.length}`);
+    voices.forEach((v, i) => {
+      console.log(`  [${i}] ${v.name} | ${v.lang} | local=${v.localService} | default=${v.default}`);
+    });
     
     let bestVoice: SpeechSynthesisVoice | null = null;
-    let bestScore = -1;
 
-    // MAPPING COMPLET DES VOIX PAR PLATEFORME
-    const voicePriority: Record<string, string[]> = {
-      male: [
-        // Windows
-        'Microsoft Paul', 'Microsoft Thomas', 'Microsoft Henri',
-        // Noms partiels Windows
-        'paul', 'thomas', 'henri',
-        // Android/Chrome - voix masculines françaises
-        'fr-FR-Standard-D', 'fr-FR-Standard-E',
-        'fr-FR-Neural-D', 'fr-FR-Neural-E',
-        // iOS/macOS
-        'Thomas', 'Paul', 'Rémy',
-        // Google
-        'Google FR D', 'Google FR E',
-        'google fr d', 'google fr e',
-        // Patterns génériques masculins
-        'male', 'homme', 'masculin'
-      ],
-      female: [
-        // Windows
-        'Microsoft Hortense', 'Microsoft Julie', 'Microsoft Marie',
-        // Noms partiels Windows
-        'hortense', 'julie', 'marie',
-        // Android/Chrome - voix féminines françaises
-        'fr-FR-Standard-A', 'fr-FR-Standard-B', 'fr-FR-Standard-C',
-        'fr-FR-Neural-A', 'fr-FR-Neural-B', 'fr-FR-Neural-C',
-        // iOS/macOS
-        'Amélie', 'Marie', 'Thomas (par défaut)', // Thomas est neutre sur iOS
-        // Google
-        'Google FR A', 'Google FR B', 'Google FR C',
-        'google fr a', 'google fr b', 'google fr c',
-        // Patterns génériques féminins
-        'female', 'femme', 'féminin', 'feminin'
-      ]
-    };
-
-    const preferredVoices = voicePriority[gender] || voicePriority.female;
-
-    // ÉTAPE 1: Chercher les voix françaises d'abord
+    // ÉTAPE 1: Filtrer les voix françaises
     const frenchVoices = voices.filter(v => {
       const lang = v.lang.toLowerCase();
-      return lang.startsWith('fr') || lang.includes('french');
+      return lang.startsWith('fr') || lang === 'fr';
     });
 
-    const voicesToSearch = frenchVoices.length > 0 ? frenchVoices : voices;
+    console.log(`🇫🇷 Voix françaises trouvées: ${frenchVoices.length}`);
 
-    // ÉTAPE 2: Scorer chaque voix
-    for (const voice of voicesToSearch) {
-      let score = 0;
-      const voiceName = voice.name.toLowerCase();
-      const voiceLang = voice.lang.toLowerCase();
+    // ÉTAPE 2: Si pas de voix française, prendre la première disponible
+    const candidates = frenchVoices.length > 0 ? frenchVoices : voices;
 
-      // Score basé sur la priorité (index dans la liste)
-      for (let i = 0; i < preferredVoices.length; i++) {
-        if (voiceName.includes(preferredVoices[i].toLowerCase())) {
-          score += (500 - i * 10); // Plus haut = meilleure priorité
-          break;
-        }
-      }
-
-      // Bonus langue française exacte
-      if (voiceLang === 'fr-fr') score += 100;
-      else if (voiceLang.startsWith('fr-')) score += 80;
-      else if (voiceLang.includes('fr')) score += 60;
-
-      // Bonus voix locale (plus réactive sur mobile)
-      if (voice.localService) score += 50;
-
-      // Bonus qualité
-      if (voiceName.includes('neural')) score += 70;
-      if (voiceName.includes('enhanced')) score += 60;
-      if (voiceName.includes('premium')) score += 50;
-      if (voiceName.includes('natural')) score += 40;
-
-      // Bonus voix par défaut
-      if (voice.default) score += 30;
-
-      // Malus pour voix qui ne correspondent pas au genre
-      const isClearlyMale = voiceName.includes('paul') || voiceName.includes('thomas') || 
-                             voiceName.includes('henri') || voiceName.includes('david') ||
-                             voiceName.includes('-d') || voiceName.includes('-e');
-      const isClearlyFemale = voiceName.includes('marie') || voiceName.includes('julie') || 
-                              voiceName.includes('hortense') || voiceName.includes('amelie') ||
-                              voiceName.includes('-a') || voiceName.includes('-b') || voiceName.includes('-c');
-
-      if (gender === 'male' && isClearlyFemale) score -= 200;
-      if (gender === 'female' && isClearlyMale) score -= 200;
-
-      if (score > bestScore) {
-        bestScore = score;
-        bestVoice = voice;
-      }
-    }
-
-    // ÉTAPE 3: Si aucune voix trouvée, fallback robuste
-    if (!bestVoice || bestScore < 50) {
-      console.warn('⚠️ Pas de voix idéale, fallback...');
+    // ÉTAPE 3: SUR MOBILE, le genre ne peut PAS être changé par le nom de voix
+    // On doit utiliser une voix française et compenser avec le PITCH
+    // Les voix mobiles sont presque toujours féminines par défaut
+    
+    if (isMobile) {
+      // SUR MOBILE: Prendre la première voix française disponible
+      // Le genre sera géré par le pitch (très bas = homme, très haut = femme)
+      bestVoice = candidates[0];
       
-      // D'abord essayer de trouver une voix du bon genre
-      if (gender === 'male') {
-        bestVoice = frenchVoices.find(v => 
-          v.name.toLowerCase().includes('paul') ||
-          v.name.toLowerCase().includes('thomas') ||
-          v.name.toLowerCase().includes('-d')
-        ) || voices.find(v => v.name.toLowerCase().includes('male')) || null;
-      } else {
-        bestVoice = frenchVoices.find(v => 
-          v.name.toLowerCase().includes('julie') ||
-          v.name.toLowerCase().includes('hortense') ||
-          v.name.toLowerCase().includes('marie') ||
-          v.name.toLowerCase().includes('-a')
-        ) || voices.find(v => v.name.toLowerCase().includes('female')) || null;
-      }
-      
-      // Dernier recours: première voix française
       if (!bestVoice) {
-        bestVoice = frenchVoices[0] || voices[0];
+        bestVoice = voices[0];
       }
+      
+      console.log(`📱 MOBILE - Voix sélectionnée: ${bestVoice?.name} (pitch ajusté selon genre)`);
+    } else {
+      // SUR DESKTOP: Chercher une voix correspondant au genre
+      // Windows a des voix masculines (Paul, Thomas) et féminines (Hortense, Julie)
+      
+      const malePatterns = ['paul', 'thomas', 'henri', 'david', 'mark', 'matthieu'];
+      const femalePatterns = ['julie', 'hortense', 'marie', 'amelie', 'chloe', 'alice'];
+      
+      if (gender === 'male') {
+        // Chercher une voix masculine
+        bestVoice = candidates.find(v => {
+          const name = v.name.toLowerCase();
+          return malePatterns.some(p => name.includes(p));
+        });
+      } else {
+        // Chercher une voix féminine
+        bestVoice = candidates.find(v => {
+          const name = v.name.toLowerCase();
+          return femalePatterns.some(p => name.includes(p));
+        });
+      }
+      
+      // Fallback: première voix française
+      if (!bestVoice) {
+        bestVoice = candidates[0];
+      }
+      
+      console.log(`💻 DESKTOP - Voix sélectionnée: ${bestVoice?.name}`);
     }
     
     setSelectedVoice(bestVoice);
     
-    if (bestVoice) {
-      console.log(`🎯 VOIX SÉLECTIONNÉE pour ${agentName} (${gender}):`, {
-        nom: bestVoice.name,
-        langue: bestVoice.lang,
-        score: bestScore,
-        locale: bestVoice.localService ? 'Locale' : 'Distante'
-      });
-    }
-  }, [isActive]);
+    console.log(`🎯 RÉSULTAT: ${bestVoice?.name} (${bestVoice?.lang})`);
+  }, [isActive, isMobile]);
 
   // Nettoyage du texte pour synthèse vocale - MOINS AGRESSIF pour garder le naturel
   const cleanTextForSpeech = useCallback((text: string): string => {
@@ -360,54 +292,50 @@ export const useNativeSpeechVoice = ({
     return chunks;
   }, []);
 
-  // Configuration vocale par agent - CHAQUE AGENT A UNE VOIX UNIQUE
-  // Mobile: volume PLUS FORT et pitch très distinct selon le genre
+  // Configuration vocale par agent - PITCH EXTRÊME pour distinguer H/F sur mobile
   const getAgentVoiceConfig = useCallback((agentName: string, gender: 'male' | 'female') => {
-    const configs: Record<string, { rate: number; pitch: number; volume: number }> = {
-      // === HOMMES - Voix GRAVES (pitch bas 0.7-0.95) ===
+    // SUR MOBILE: Le pitch est le SEUL moyen de distinguer le genre
+    // Les voix mobiles sont presque toutes féminines par défaut
+    // Donc: HOMMES = pitch TRÈS BAS (0.5-0.7), FEMMES = pitch TRÈS HAUT (1.3-1.5)
+    
+    const configs: Record<string, { rate: number; pitch: number }> = {
+      // === HOMMES - PITCH TRÈS BAS pour " masculiniser" la voix ===
       'Marc Dubois': { 
-        rate: isMobile ? 0.85 : 0.90, 
-        pitch: isMobile ? 0.75 : 0.80, 
-        volume: isMobile ? 1.0 : 0.95
+        rate: isMobile ? 0.88 : 0.90, 
+        pitch: isMobile ? 0.55 : 0.70  // TRÈS BAS sur mobile
       },
       'Alex Moreau': { 
-        rate: isMobile ? 1.15 : 1.10, 
-        pitch: isMobile ? 0.88 : 0.92, 
-        volume: isMobile ? 1.0 : 0.95
+        rate: isMobile ? 1.12 : 1.10, 
+        pitch: isMobile ? 0.65 : 0.80  // Un peu plus haut mais reste bas
       },
       'Pierre Delacroix': { 
-        rate: isMobile ? 0.75 : 0.80, 
-        pitch: isMobile ? 0.70 : 0.75, 
-        volume: isMobile ? 1.0 : 0.95
+        rate: isMobile ? 0.78 : 0.80, 
+        pitch: isMobile ? 0.50 : 0.65  // LE PLUS BAS - voix grave
       },
       
-      // === FEMMES - Voix AIGÜES (pitch haut 1.1-1.4) ===
+      // === FEMMES - PITCH TRÈS HAUT pour voix naturelle ===
       'Sophie Martin': { 
-        rate: isMobile ? 0.88 : 0.92, 
-        pitch: isMobile ? 1.28 : 1.18, 
-        volume: isMobile ? 1.0 : 0.95
+        rate: isMobile ? 0.90 : 0.92, 
+        pitch: isMobile ? 1.40 : 1.20  // TRÈS HAUT sur mobile
       },
       'Dr. Claire Rousseau': { 
-        rate: isMobile ? 0.82 : 0.88, 
-        pitch: isMobile ? 1.15 : 1.08, 
-        volume: isMobile ? 1.0 : 0.95
+        rate: isMobile ? 0.85 : 0.88, 
+        pitch: isMobile ? 1.30 : 1.15  // Plus posé mais haut
       },
       'Camille Durand': { 
-        rate: isMobile ? 1.12 : 1.08, 
-        pitch: isMobile ? 1.38 : 1.28, 
-        volume: isMobile ? 1.0 : 0.95
+        rate: isMobile ? 1.10 : 1.08, 
+        pitch: isMobile ? 1.45 : 1.30  // LE PLUS HAUT - voix vive
       }
     };
 
-    // Fallback selon le genre - TRÈS distinct
     if (configs[agentName]) {
       return configs[agentName];
     }
     
-    // Fallback par défaut selon le genre
+    // Fallback par défaut selon le genre - TRÈS DIFFÉRENT
     return gender === 'male'
-      ? { rate: 0.88, pitch: 0.78, volume: 1.0 }
-      : { rate: 0.90, pitch: 1.25, volume: 1.0 };
+      ? { rate: 0.90, pitch: 0.55 }  // Grave pour hommes
+      : { rate: 0.90, pitch: 1.40 }; // Aigu pour femmes
   }, [isMobile]);
 
   // Analyse émotionnelle élargie pour modulation vocale naturelle
@@ -594,19 +522,19 @@ export const useNativeSpeechVoice = ({
     const baseConfig = getAgentVoiceConfig(expertName, expertGender);
     const emotion = analyzeEmotion(cleanedText);
 
-    // Mobile: volume TOUJOURS à 1.0 (maximum)
+    // LIMITES ÉLARGIES pour mobile: pitch très bas (0.4) à très haut (1.5)
     const finalConfig = {
-      rate: Math.max(0.7, Math.min(1.25, baseConfig.rate * emotion.rateMod)),
-      pitch: Math.max(0.6, Math.min(1.4, baseConfig.pitch * emotion.pitchMod)),
-      volume: isMobile ? 1.0 : (baseConfig.volume || 0.95)
+      rate: Math.max(0.7, Math.min(1.3, baseConfig.rate * emotion.rateMod)),
+      pitch: Math.max(0.4, Math.min(1.5, baseConfig.pitch * emotion.pitchMod)),
+      volume: isMobile ? 1.0 : 0.95
     };
 
     console.log(`🎙️ Lecture ${isMobile ? '📱 MOBILE' : '💻 DESKTOP'}:`, {
       voix: selectedVoice.name,
       genre: expertGender,
       agent: expertName,
-      rate: finalConfig.rate.toFixed(2),
-      pitch: finalConfig.pitch.toFixed(2),
+      pitch_final: finalConfig.pitch.toFixed(2),
+      rate_final: finalConfig.rate.toFixed(2),
       volume: finalConfig.volume
     });
 
