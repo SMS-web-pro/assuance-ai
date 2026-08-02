@@ -1,7 +1,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { generateEdgeTTS, FRENCH_VOICES } from '@/lib/edgeTTS';
 
 interface UseNativeSpeechVoiceProps {
   onTranscript?: (text: string) => void;
@@ -10,12 +10,6 @@ interface UseNativeSpeechVoiceProps {
   expertName?: string;
   isActive?: boolean;
 }
-
-// Edge TTS voice mapping
-const EDGE_TTS_VOICES: Record<string, Record<string, string>> = {
-  'female': { default: 'fr-FR-DeniseNeural', vivienne: 'fr-FR-VivienneNeural' },
-  'male': { default: 'fr-FR-HenriNeural' },
-};
 
 export const useNativeSpeechVoice = ({ 
   onTranscript, 
@@ -377,7 +371,7 @@ export const useNativeSpeechVoice = ({
     return { rateMod, pitchMod, volumeMod };
   }, []);
 
-  // Edge TTS -高品质微软语音合成
+  // Edge TTS -高品质微软语音合成 (client-side)
   const speakWithEdgeTTS = useCallback(async (text: string) => {
     if (!isActive) {
       console.log('🔇 Agent inactif');
@@ -412,36 +406,28 @@ export const useNativeSpeechVoice = ({
     const pitchPercent = Math.round((baseConfig.pitch * emotion.pitchMod - 1) * 50);
 
     // Get voice name
-    const genderVoices = EDGE_TTS_VOICES[expertGender] || EDGE_TTS_VOICES.female;
-    let voiceName = genderVoices.default;
+    let voiceName = expertGender === 'male' 
+      ? FRENCH_VOICES.male.henri 
+      : FRENCH_VOICES.female.denise;
     
     // Map agent names to specific voices
     if (expertName.includes('Vivienne') || expertName.includes('Claire')) {
-      voiceName = genderVoices.vivienne || voiceName;
+      voiceName = FRENCH_VOICES.female.vivienne;
     }
 
     console.log(`🎤 Edge TTS: voice=${voiceName}, rate=${ratePercent}%, pitch=${pitchPercent}%`);
 
     try {
-      const { data, error } = await supabase.functions.invoke('edge-tts', {
-        body: {
-          text: cleanedText,
-          voice: voiceName,
-          speed: ratePercent,
-          pitch: pitchPercent,
-          volume: 0,
-        },
+      const audioBuffer = await generateEdgeTTS({
+        text: cleanedText,
+        voice: voiceName,
+        speed: ratePercent,
+        pitch: pitchPercent,
+        volume: 0,
       });
 
-      if (error) {
-        console.error('❌ Edge TTS error:', error);
-        // Fallback to browser TTS
-        speakWithNativeAPI(text);
-        return;
-      }
-
       // Play the audio
-      const audioBlob = new Blob([data], { type: 'audio/mpeg' });
+      const audioBlob = new Blob([audioBuffer], { type: 'audio/mpeg' });
       const audioUrl = URL.createObjectURL(audioBlob);
       
       const audio = new Audio(audioUrl);
