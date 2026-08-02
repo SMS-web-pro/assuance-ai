@@ -34,7 +34,7 @@ serve(async (req) => {
       body: JSON.stringify({
         model: 'deepseek-chat',
         messages: messages,
-        max_tokens: 1000,
+max_tokens: 500,
         temperature: 0.7,
       }),
     });
