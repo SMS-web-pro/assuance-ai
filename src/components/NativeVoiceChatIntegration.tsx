@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useVoiceSystem } from '@/hooks/useVoiceSystem';
 import NativeVoiceControls from './NativeVoiceControls';
 
@@ -31,7 +31,8 @@ const NativeVoiceChatIntegration: React.FC<NativeVoiceChatIntegrationProps> = ({
     return agents[type as keyof typeof agents] || { name: 'Assistant', gender: 'female' as const };
   };
 
-  const agentInfo = getAgentInfo(insuranceType);
+  // useMemo pour s'assurer que agentInfo change quand insuranceType change
+  const agentInfo = useMemo(() => getAgentInfo(insuranceType), [insuranceType]);
   
   console.log(`🎭 Agent ${agentInfo.name} (${agentInfo.gender}) pour ${insuranceType} - ${isActive ? 'ACTIF' : 'INACTIF'} - Synthèse vocale native`);
 
@@ -48,6 +49,12 @@ const NativeVoiceChatIntegration: React.FC<NativeVoiceChatIntegrationProps> = ({
     expertName: agentInfo.name,
     isActive
   });
+
+  // Réinitialiser le message traité quand l'agent change
+  useEffect(() => {
+    console.log(`🔄 Agent changé vers ${agentInfo.name} - réinitialisation du message traité`);
+    setLastProcessedMessage('');
+  }, [agentInfo.name]);
 
   // Déclencher la lecture vocale automatique seulement si l'agent est actif
   useEffect(() => {

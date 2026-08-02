@@ -62,7 +62,7 @@ export const useNativeSpeechVoice = ({
         return lang.startsWith('fr-fr') || lang.startsWith('fr_fr') || lang === 'fr';
       });
       
-      console.log('🎵 Voix françaises détectées:', frenchVoices.length);
+      console.log('🎵 Voix françaises détectées:', frenchVoices.length, isMobile ? '(mobile)' : '(desktop)');
       setAvailableVoices(frenchVoices);
       selectOptimalVoice(frenchVoices, expertGender, expertName);
     };
@@ -73,7 +73,15 @@ export const useNativeSpeechVoice = ({
       speechSynthesis.addEventListener('voiceschanged', updateVoices);
       setTimeout(updateVoices, 500);
     }
-  }, [expertGender, expertName, isActive]);
+  }, [expertGender, expertName, isActive, isMobile]);
+
+  // FORCER la re-sélection quand l'agent change
+  useEffect(() => {
+    if (availableVoices.length > 0 && isActive) {
+      console.log(`🔄 Agent changé: ${expertName} (${expertGender}) - re-sélection de la voix`);
+      selectOptimalVoice(availableVoices, expertGender, expertName);
+    }
+  }, [expertName, expertGender, isActive]);
 
   const selectOptimalVoice = useCallback((voices: SpeechSynthesisVoice[], gender: 'male' | 'female', agentName: string) => {
     if (voices.length === 0 || !isActive) {
@@ -312,19 +320,41 @@ export const useNativeSpeechVoice = ({
 
   // Configuration vocale par agent - CHAQUE AGENT A UNE VOIX UNIQUE
   const getAgentVoiceConfig = useCallback((agentName: string, gender: 'male' | 'female') => {
-    // Sur mobile, les voix sont différentes et les rate/pitch doivent être ajustés
-    const mobileMultiplier = isMobile ? 0.9 : 1.0;
-    
+    // Sur mobile, les voix sont différentes et les rate/pitch doivent être plus distincts
     const configs: Record<string, { rate: number; pitch: number; volume: number }> = {
-      // HOMMES - tous Paul, mais chaque agent a un rythme et ton différents
-      'Marc Dubois':      { rate: 0.90 * mobileMultiplier, pitch: isMobile ? 0.95 : 0.85, volume: 1.0 },
-      'Alex Moreau':      { rate: 1.10 * mobileMultiplier, pitch: isMobile ? 1.05 : 1.00, volume: 1.0 },
-      'Pierre Delacroix': { rate: 0.80 * mobileMultiplier, pitch: isMobile ? 0.90 : 0.75, volume: 1.0 },
+      // HOMMES - tous Paul, mais chaque agent a un rythme et ton TRÈS différents
+      'Marc Dubois':      { 
+        rate: isMobile ? 0.85 : 0.90, 
+        pitch: isMobile ? 0.90 : 0.85, 
+        volume: 1.0 
+      },
+      'Alex Moreau':      { 
+        rate: isMobile ? 1.15 : 1.10, 
+        pitch: isMobile ? 1.10 : 1.00, 
+        volume: 1.0 
+      },
+      'Pierre Delacroix': { 
+        rate: isMobile ? 0.75 : 0.80, 
+        pitch: isMobile ? 0.80 : 0.75, 
+        volume: 1.0 
+      },
       
-      // FEMMES - Hortense et Julie, chaque agent a un rythme et ton différents
-      'Sophie Martin':      { rate: 0.92 * mobileMultiplier, pitch: isMobile ? 1.08 : 1.15, volume: 1.0 },
-      'Dr. Claire Rousseau': { rate: 0.88 * mobileMultiplier, pitch: isMobile ? 1.00 : 1.05, volume: 1.0 },
-      'Camille Durand':     { rate: 1.08 * mobileMultiplier, pitch: isMobile ? 1.15 : 1.25, volume: 1.0 }
+      // FEMMES - Hortense et Julie, chaque agent a un rythme et ton TRÈS différents
+      'Sophie Martin':      { 
+        rate: isMobile ? 0.88 : 0.92, 
+        pitch: isMobile ? 1.20 : 1.15, 
+        volume: 1.0 
+      },
+      'Dr. Claire Rousseau': { 
+        rate: isMobile ? 0.82 : 0.88, 
+        pitch: isMobile ? 1.10 : 1.05, 
+        volume: 1.0 
+      },
+      'Camille Durand':     { 
+        rate: isMobile ? 1.12 : 1.08, 
+        pitch: isMobile ? 1.30 : 1.25, 
+        volume: 1.0 
+      }
     };
 
     return configs[agentName] || (gender === 'male' 
