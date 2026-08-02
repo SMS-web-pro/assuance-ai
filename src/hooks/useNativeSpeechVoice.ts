@@ -1,6 +1,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface UseNativeSpeechVoiceProps {
   onTranscript?: (text: string) => void;
@@ -9,6 +10,12 @@ interface UseNativeSpeechVoiceProps {
   expertName?: string;
   isActive?: boolean;
 }
+
+// Edge TTS voice mapping
+const EDGE_TTS_VOICES: Record<string, Record<string, string>> = {
+  'female': { default: 'fr-FR-DeniseNeural', vivienne: 'fr-FR-VivienneNeural' },
+  'male': { default: 'fr-FR-HenriNeural' },
+};
 
 export const useNativeSpeechVoice = ({ 
   onTranscript, 
@@ -23,9 +30,11 @@ export const useNativeSpeechVoice = ({
   const [lastMessage, setLastMessage] = useState<string>('');
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
+  const [useEdgeTTS, setUseEdgeTTS] = useState(true);
   
   const recognitionRef = useRef<any>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const isManualStopRef = useRef<boolean>(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const hasSpokenNameRef = useRef<boolean>(false);
@@ -368,7 +377,100 @@ export const useNativeSpeechVoice = ({
     return { rateMod, pitchMod, volumeMod };
   }, []);
 
-  // Synthèse vocale avec pauses explicites entre chunks
+  // Edge TTS -高品质微软语音合成
+  const speakWithEdgeTTS = useCallback(async (text: string) => {
+    if (!isActive) {
+      console.log('🔇 Agent inactif');
+      return;
+    }
+
+    if (!text || text.trim().length < 2) {
+      console.warn('⚠️ Texte trop court');
+      return;
+    }
+
+    const cleanedText = cleanTextForSpeech(text);
+    if (!cleanedText || cleanedText.trim().length < 2) {
+      console.warn('⚠️ Texte nettoyé trop court');
+      return;
+    }
+
+    // Stop any current audio
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+
+    setLastMessage(text);
+    setIsSpeaking(true);
+
+    const baseConfig = getAgentVoiceConfig(expertName, expertGender);
+    const emotion = analyzeEmotion(cleanedText);
+
+    // Convert rate/pitch to Edge TTS format (percentage offset)
+    const ratePercent = Math.round((baseConfig.rate * emotion.rateMod - 1) * 100);
+    const pitchPercent = Math.round((baseConfig.pitch * emotion.pitchMod - 1) * 50);
+
+    // Get voice name
+    const genderVoices = EDGE_TTS_VOICES[expertGender] || EDGE_TTS_VOICES.female;
+    let voiceName = genderVoices.default;
+    
+    // Map agent names to specific voices
+    if (expertName.includes('Vivienne') || expertName.includes('Claire')) {
+      voiceName = genderVoices.vivienne || voiceName;
+    }
+
+    console.log(`🎤 Edge TTS: voice=${voiceName}, rate=${ratePercent}%, pitch=${pitchPercent}%`);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('edge-tts', {
+        body: {
+          text: cleanedText,
+          voice: voiceName,
+          speed: ratePercent,
+          pitch: pitchPercent,
+          volume: 0,
+        },
+      });
+
+      if (error) {
+        console.error('❌ Edge TTS error:', error);
+        // Fallback to browser TTS
+        speakWithNativeAPI(text);
+        return;
+      }
+
+      // Play the audio
+      const audioBlob = new Blob([data], { type: 'audio/mpeg' });
+      const audioUrl = URL.createObjectURL(audioBlob);
+      
+      const audio = new Audio(audioUrl);
+      audioRef.current = audio;
+      
+      audio.onended = () => {
+        setIsSpeaking(false);
+        audioRef.current = null;
+        URL.revokeObjectURL(audioUrl);
+        console.log('✅ Edge TTS lecture terminée');
+      };
+      
+      audio.onerror = (e) => {
+        console.error('❌ Audio playback error:', e);
+        setIsSpeaking(false);
+        audioRef.current = null;
+        URL.revokeObjectURL(audioUrl);
+      };
+      
+      await audio.play();
+      
+    } catch (error) {
+      console.error('❌ Edge TTS exception:', error);
+      // Fallback to browser TTS
+      speakWithNativeAPI(text);
+    }
+  }, [isActive, cleanTextForSpeech, getAgentVoiceConfig, analyzeEmotion, expertName, expertGender]);
+
+  // Synthèse vocale native (fallback)
   const speakWithNativeAPI = useCallback(async (text: string) => {
     if (!isActive) {
       console.log('🔇 Agent inactif');
@@ -677,13 +779,15 @@ export const useNativeSpeechVoice = ({
     isSupported,
     startListening,
     stopListening,
-    speak: speakWithNativeAPI,
+    speak: useEdgeTTS ? speakWithEdgeTTS : speakWithNativeAPI,
     stopSpeaking,
     replayLastMessage,
     resetConversation,
     availableVoices,
     selectedVoice,
-    setSelectedVoice
+    setSelectedVoice,
+    useEdgeTTS,
+    setUseEdgeTTS
   };
 };
 
