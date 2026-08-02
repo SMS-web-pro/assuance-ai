@@ -192,13 +192,14 @@ Réponds toujours en français de manière naturelle et professionnelle.`;
         content: currentInput
       });
 
-      const response = await fetch('https://adwvpiorjculpygkmyvp.supabase.co/functions/v1/chat', {
+      const response = await fetch('https://api.deepseek.com/chat/completions', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkd3ZwaW9yamN1bHB5Z2tteXZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4NzMwODAsImV4cCI6MjEwMDQ0OTA4MH0.9u53ISFY5YL-la7p8qAamnZPvIKfTupzj6qrR9qZljg`,
+          'Authorization': 'Bearer sk-76ca2f8d5b2f455fb6a69f62d459e620',
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          model: 'deepseek-chat',
           messages: [
             {
               role: 'system',
@@ -206,7 +207,8 @@ Réponds toujours en français de manière naturelle et professionnelle.`;
             },
             ...conversationHistory
           ],
-          insuranceType: 'selection',
+          temperature: 0.7,
+          max_tokens: 500,
         }),
       });
 
