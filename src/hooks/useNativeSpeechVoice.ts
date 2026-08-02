@@ -29,7 +29,7 @@ export const useNativeSpeechVoice = ({
   const [lastMessage, setLastMessage] = useState<string>('');
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
-  const [useEdgeTTS, setUseEdgeTTS] = useState(true);
+  const [useEdgeTTS, setUseEdgeTTS] = useState(false);
   
   const recognitionRef = useRef<any>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
@@ -304,24 +304,24 @@ export const useNativeSpeechVoice = ({
   // Configuration vocale par agent avec différenciation homme/femme
   const getAgentVoiceConfig = useCallback((agentName: string, gender: 'male' | 'female') => {
     const configs: Record<string, { rate: number; pitch: number; volume: number }> = {
-      // HOMMES : voix graves, chacun avec un caractère distinct
-      'Marc Dubois':      { rate: 1.05, pitch: 0.68, volume: 0.88 },  // Posé, professional
-      'Alex Moreau':      { rate: 1.12, pitch: 0.75, volume: 0.90 },  // Dynamique, rapide
-      'Pierre Delacroix': { rate: 0.98, pitch: 0.62, volume: 0.85 },  // Sérieux, lent
+      // HOMMES : voix graves naturelles
+      'Marc Dubois':      { rate: 0.92, pitch: 0.90, volume: 1.0 },  // Posé, professionnel
+      'Alex Moreau':      { rate: 1.00, pitch: 0.95, volume: 1.0 },  // Dynamique
+      'Pierre Delacroix': { rate: 0.88, pitch: 0.85, volume: 1.0 },  // Sérieux, lent
       
-      // FEMMES : voix aigües, chacune avec un caractère distinct
-      'Sophie Martin':      { rate: 1.06, pitch: 1.30, volume: 0.87 },  // Chaleureuse, posée
-      'Dr. Claire Rousseau': { rate: 1.00, pitch: 1.22, volume: 0.84 },  // Experte, calme
-      'Camille Durand':     { rate: 1.15, pitch: 1.40, volume: 0.92 }   // Énergique, vive
+      // FEMMES : voix naturelles
+      'Sophie Martin':      { rate: 0.95, pitch: 1.10, volume: 1.0 },  // Chaleureuse
+      'Dr. Claire Rousseau': { rate: 0.92, pitch: 1.08, volume: 1.0 },  // Experte, calme
+      'Camille Durand':     { rate: 1.02, pitch: 1.12, volume: 1.0 }   // Énergique
     };
 
     return configs[agentName] || (gender === 'male' 
-      ? { rate: 1.05, pitch: 0.70, volume: 0.88 }
-      : { rate: 1.08, pitch: 1.30, volume: 0.87 }
+      ? { rate: 0.92, pitch: 0.90, volume: 1.0 }
+      : { rate: 0.95, pitch: 1.10, volume: 1.0 }
     );
   }, []);
 
-  // Analyse émotionnelle pour modulation
+  // Analyse émotionnelle pour modulation légère
   const analyzeEmotion = useCallback((text: string) => {
     const lower = text.toLowerCase();
     
@@ -329,48 +329,43 @@ export const useNativeSpeechVoice = ({
     let pitchMod = 1.0;
     let volumeMod = 1.0;
 
-    // Joie / enthousiasme
+    // Joie / enthousiasme - légère accélération
     if (/(?:merci|parfait|excellent|super|génial|formidable|bravo|content|ravi)/.test(lower)) {
-      rateMod *= 1.15;
-      pitchMod *= 1.13;
-      volumeMod *= 1.05;
+      rateMod *= 1.05;
+      pitchMod *= 1.03;
+      volumeMod *= 1.02;
     }
 
-    // Inquiétude / problème
+    // Inquiétude / problème - légère décélération
     if (/(?:problème|soucis|difficile|compliqué|inquiet|grave|attention|risque)/.test(lower)) {
-      rateMod *= 0.82;
-      pitchMod *= 0.87;
-      volumeMod *= 0.92;
+      rateMod *= 0.95;
+      pitchMod *= 0.97;
+      volumeMod *= 0.98;
     }
 
     // Urgence
     if (/(?:urgent|rapidement|vite|immédiatement|crucial|dès que possible)/.test(lower)) {
-      rateMod *= 1.18;
-      pitchMod *= 1.08;
+      rateMod *= 1.08;
+      pitchMod *= 1.02;
     }
 
     // Expertise / sérieux
     if (/(?:technique|spécialisé|professionnel|expert|précisément|conformément|réglementation)/.test(lower)) {
-      rateMod *= 0.82;
-      pitchMod *= 0.92;
+      rateMod *= 0.95;
+      pitchMod *= 0.98;
     }
 
     // Empathie / chaleur
     if (/(?:comprends|accompagne|soutien|aide|écoute|accompagner|vous accompagne)/.test(lower)) {
-      rateMod *= 0.80;
-      pitchMod *= 1.10;
-      volumeMod *= 0.90;
-    }
-
-    // Question
-    if (text.includes('?')) {
-      pitchMod *= 1.08;
+      rateMod *= 0.95;
+      pitchMod *= 1.02;
+      volumeMod *= 0.98;
     }
 
     // Exclamation
     if (text.includes('!')) {
-      volumeMod *= 1.05;
-      rateMod *= 0.95;
+      volumeMod *= 1.02;
+      rateMod *= 0.98;
     }
 
     return { rateMod, pitchMod, volumeMod };
@@ -499,78 +494,42 @@ export const useNativeSpeechVoice = ({
     const emotion = analyzeEmotion(cleanedText);
 
     const finalConfig = {
-      rate: Math.max(0.5, Math.min(1.5, baseConfig.rate * emotion.rateMod)),
-      pitch: Math.max(0.3, Math.min(2.0, baseConfig.pitch * emotion.pitchMod)),
-      volume: Math.max(0.7, Math.min(1.0, baseConfig.volume * emotion.volumeMod))
+      rate: Math.max(0.7, Math.min(1.2, baseConfig.rate * emotion.rateMod)),
+      pitch: Math.max(0.7, Math.min(1.3, baseConfig.pitch * emotion.pitchMod)),
+      volume: Math.max(0.8, Math.min(1.0, baseConfig.volume * emotion.volumeMod))
     };
 
-    // Découper en chunks avec pauses
-    const chunks = splitIntoNaturalChunks(cleanedText);
-    
-    console.log(`🎙️ Lecture professionnelle: ${chunks.length} segments | Rate: ${finalConfig.rate.toFixed(2)} | Pitch: ${finalConfig.pitch.toFixed(2)}`);
+    // Parler tout le texte d'un coup pour un rendu plus naturel
+    console.log(`🎙️ Lecture: Rate: ${finalConfig.rate.toFixed(2)} | Pitch: ${finalConfig.pitch.toFixed(2)}`);
 
-    let currentChunk = 0;
+    const utterance = new SpeechSynthesisUtterance(cleanedText);
+    utteranceRef.current = utterance;
 
-    const speakNextChunk = () => {
-      if (currentChunk >= chunks.length || !isActive) {
-        setIsSpeaking(false);
-        utteranceRef.current = null;
-        console.log('✅ Lecture terminée');
-        return;
-      }
+    utterance.voice = selectedVoice;
+    utterance.lang = 'fr-FR';
+    utterance.rate = finalConfig.rate;
+    utterance.pitch = finalConfig.pitch;
+    utterance.volume = finalConfig.volume;
 
-      const chunk = chunks[currentChunk];
-      
-      if (!chunk.text || chunk.text.trim().length === 0) {
-        currentChunk++;
-        speakNextChunk();
-        return;
-      }
-
-      const utterance = new SpeechSynthesisUtterance(chunk.text);
-      utteranceRef.current = utterance;
-
-      // Micro-variations aléatoires pour un rendu plus naturel
-      const microRateVar = 1.0 + (Math.random() - 0.5) * 0.06;
-      const microPitchVar = 1.0 + (Math.random() - 0.5) * 0.04;
-      const microVolVar = 1.0 + (Math.random() - 0.5) * 0.03;
-
-      utterance.voice = selectedVoice;
-      utterance.lang = 'fr-FR';
-      utterance.rate = Math.max(0.6, Math.min(1.3, finalConfig.rate * microRateVar));
-      utterance.pitch = Math.max(0.4, Math.min(1.8, finalConfig.pitch * microPitchVar));
-      utterance.volume = Math.max(0.75, Math.min(1.0, finalConfig.volume * microVolVar));
-
-      utterance.onstart = () => {
-        if (currentChunk === 0) {
-          console.log(`🔊 Début: "${chunk.text.substring(0, 40)}..."`);
-        }
-      };
-
-      utterance.onend = () => {
-        currentChunk++;
-        if (currentChunk < chunks.length && isActive) {
-          // Pause explicite entre chunks
-          setTimeout(speakNextChunk, chunk.pauseAfter);
-        } else {
-          setIsSpeaking(false);
-          utteranceRef.current = null;
-          console.log('✅ Lecture terminée');
-        }
-      };
-
-      utterance.onerror = (error) => {
-        console.error('❌ Erreur synthèse:', error);
-        setIsSpeaking(false);
-        utteranceRef.current = null;
-      };
-
-      speechSynthesis.speak(utterance);
+    utterance.onstart = () => {
+      console.log(`🔊 Début de la lecture`);
     };
 
-    speakNextChunk();
+    utterance.onend = () => {
+      setIsSpeaking(false);
+      utteranceRef.current = null;
+      console.log('✅ Lecture terminée');
+    };
 
-  }, [selectedVoice, expertGender, expertName, cleanTextForSpeech, getAgentVoiceConfig, analyzeEmotion, splitIntoNaturalChunks, isActive]);
+    utterance.onerror = (error) => {
+      console.error('❌ Erreur synthèse:', error);
+      setIsSpeaking(false);
+      utteranceRef.current = null;
+    };
+
+    speechSynthesis.speak(utterance);
+
+  }, [selectedVoice, expertGender, expertName, cleanTextForSpeech, getAgentVoiceConfig, analyzeEmotion, isActive]);
 
   const stopSpeaking = useCallback(() => {
     console.log('🛑 Arrêt synthèse vocale');
