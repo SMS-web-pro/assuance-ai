@@ -2,7 +2,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { generateAgentSpeech } from '@/services/edgeTTSService';
 
 interface UseNativeSpeechVoiceProps {
   onTranscript?: (text: string) => void;
@@ -33,8 +32,6 @@ export const useNativeSpeechVoice = ({
   
   const recognitionRef = useRef<any>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const audioUrlRef = useRef<string | null>(null);
   const isManualStopRef = useRef<boolean>(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const hasSpokenNameRef = useRef<boolean>(false);
@@ -486,8 +483,8 @@ export const useNativeSpeechVoice = ({
     }
   }, []);
 
-  // Générer et jouer l'audio via Edge TTS (haute qualité)
-  const speakWithEdgeTTS = useCallback(async (text: string) => {
+  // Synthèse vocale native - VERSION MOBILE OPTIMISÉE
+  const speakWithNativeAPI = useCallback(async (text: string) => {
     if (!isActive) {
       console.log('🔇 Agent inactif');
       return;
@@ -498,21 +495,18 @@ export const useNativeSpeechVoice = ({
       return;
     }
 
+    if (!selectedVoice) {
+      console.warn('⚠️ Aucune voix sélectionnée');
+      return;
+    }
+
     const cleanedText = cleanTextForSpeech(text);
     if (!cleanedText || cleanedText.trim().length < 2) {
       console.warn('⚠️ Texte nettoyé trop court');
       return;
     }
 
-    // Arrêter toute lecture en cours
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current = null;
-    }
-    if (audioUrlRef.current) {
-      URL.revokeObjectURL(audioUrlRef.current);
-      audioUrlRef.current = null;
-    }
+    // Annuler toute lecture en cours
     if (utteranceRef.current) {
       speechSynthesis.cancel();
       utteranceRef.current = null;
@@ -524,112 +518,60 @@ export const useNativeSpeechVoice = ({
     setLastMessage(text);
     setIsSpeaking(true);
 
-    try {
-      console.log(`🎙️ Edge TTS: ${isMobile ? '📱 MOBILE' : '💻 DESKTOP'} | Agent: ${expertName} | Genre: ${expertGender}`);
-      
-      // Générer l'audio via Edge TTS
-      const audioBuffer = await generateAgentSpeech(cleanedText, expertName);
-      
-      // Créer une URL blob pour la lecture
-      const blob = new Blob([audioBuffer], { type: 'audio/mpeg' });
-      const url = URL.createObjectURL(blob);
-      audioUrlRef.current = url;
-      
-      // Créer et jouer l'audio
-      const audio = new Audio(url);
-      audioRef.current = audio;
-      
-      audio.onplay = () => {
-        console.log('🔊 Edge TTS lecture démarrée');
-      };
-      
-      audio.onended = () => {
-        setIsSpeaking(false);
-        releaseWakeLock();
-        if (audioUrlRef.current) {
-          URL.revokeObjectURL(audioUrlRef.current);
-          audioUrlRef.current = null;
-        }
-        audioRef.current = null;
-        console.log('✅ Edge TTS lecture terminée');
-      };
-      
-      audio.onerror = (error) => {
-        console.error('❌ Erreur lecture Edge TTS:', error);
-        setIsSpeaking(false);
-        releaseWakeLock();
-        if (audioUrlRef.current) {
-          URL.revokeObjectURL(audioUrlRef.current);
-          audioUrlRef.current = null;
-        }
-        audioRef.current = null;
-      };
-      
-      await audio.play();
-      
-    } catch (error) {
-      console.error('❌ Erreur génération Edge TTS:', error);
-      setIsSpeaking(false);
-      releaseWakeLock();
-      
-      // Fallback vers Web Speech API si Edge TTS échoue
-      console.log('🔄 Fallback vers Web Speech API...');
-      speakWithNativeAPIFallback(text);
-    }
-  }, [expertName, expertGender, cleanTextForSpeech, isMobile, requestWakeLock, releaseWakeLock]);
+    // Config vocale selon l'agent
+    const baseConfig = getAgentVoiceConfig(expertName, expertGender);
+    const emotion = analyzeEmotion(cleanedText);
 
-  // Fallback Web Speech API (utilisé si Edge TTS échoue)
-  const speakWithNativeAPIFallback = useCallback(async (text: string) => {
-    if (!isActive || !text || text.trim().length < 2) return;
+    // LIMITES ÉLARGIES pour mobile: pitch très bas (0.4) à très haut (1.5)
+    const finalConfig = {
+      rate: Math.max(0.7, Math.min(1.3, baseConfig.rate * emotion.rateMod)),
+      pitch: Math.max(0.4, Math.min(1.5, baseConfig.pitch * emotion.pitchMod)),
+      volume: isMobile ? 1.0 : 0.95
+    };
 
-    const cleanedText = cleanTextForSpeech(text);
-    if (!cleanedText || cleanedText.trim().length < 2) return;
-
-    if (utteranceRef.current) {
-      speechSynthesis.cancel();
-      utteranceRef.current = null;
-    }
-
-    await requestWakeLock();
-    setLastMessage(text);
-    setIsSpeaking(true);
+    console.log(`🎙️ Lecture ${isMobile ? '📱 MOBILE' : '💻 DESKTOP'}:`, {
+      voix: selectedVoice.name,
+      genre: expertGender,
+      agent: expertName,
+      pitch_final: finalConfig.pitch.toFixed(2),
+      rate_final: finalConfig.rate.toFixed(2),
+      volume: finalConfig.volume
+    });
 
     const utterance = new SpeechSynthesisUtterance(cleanedText);
     utteranceRef.current = utterance;
+
+    utterance.voice = selectedVoice;
     utterance.lang = 'fr-FR';
-    utterance.rate = 0.9;
-    utterance.pitch = expertGender === 'male' ? 0.8 : 1.2;
-    utterance.volume = 1.0;
+    utterance.rate = finalConfig.rate;
+    utterance.pitch = finalConfig.pitch;
+    utterance.volume = finalConfig.volume;
+
+    utterance.onstart = () => {
+      console.log(`🔊 Début de la lecture`);
+    };
 
     utterance.onend = () => {
       setIsSpeaking(false);
       utteranceRef.current = null;
       releaseWakeLock();
+      console.log('✅ Lecture terminée');
     };
 
-    utterance.onerror = () => {
+    utterance.onerror = (error) => {
+      console.error('❌ Erreur synthèse:', error);
       setIsSpeaking(false);
       utteranceRef.current = null;
       releaseWakeLock();
     };
 
     speechSynthesis.speak(utterance);
-  }, [expertGender, cleanTextForSpeech, isActive, requestWakeLock, releaseWakeLock]);
+
+  }, [selectedVoice, expertGender, expertName, cleanTextForSpeech, getAgentVoiceConfig, analyzeEmotion, isActive, isMobile, requestWakeLock, releaseWakeLock]);
 
   const stopSpeaking = useCallback(() => {
     console.log('🛑 Arrêt synthèse vocale');
     
-    // Arrêter l'audio Edge TTS
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current = null;
-    }
-    if (audioUrlRef.current) {
-      URL.revokeObjectURL(audioUrlRef.current);
-      audioUrlRef.current = null;
-    }
-    
-    // Arrêter Web Speech API
     if (utteranceRef.current) {
       speechSynthesis.cancel();
       utteranceRef.current = null;
@@ -654,8 +596,8 @@ export const useNativeSpeechVoice = ({
       return;
     }
     
-    speakWithEdgeTTS(lastMessage);
-  }, [lastMessage, speakWithEdgeTTS, toast, isActive]);
+    speakWithNativeAPI(lastMessage);
+  }, [lastMessage, speakWithNativeAPI, toast, isActive]);
 
   const startListening = useCallback(async () => {
     if (!isActive) return;
@@ -798,15 +740,6 @@ export const useNativeSpeechVoice = ({
         speechSynthesis.cancel();
         utteranceRef.current = null;
       }
-      // Nettoyer l'audio Edge TTS
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
-      if (audioUrlRef.current) {
-        URL.revokeObjectURL(audioUrlRef.current);
-        audioUrlRef.current = null;
-      }
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
@@ -823,15 +756,6 @@ export const useNativeSpeechVoice = ({
         speechSynthesis.cancel();
         utteranceRef.current = null;
       }
-      // Nettoyer l'audio Edge TTS
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
-      if (audioUrlRef.current) {
-        URL.revokeObjectURL(audioUrlRef.current);
-        audioUrlRef.current = null;
-      }
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
@@ -846,7 +770,7 @@ export const useNativeSpeechVoice = ({
     isSupported,
     startListening,
     stopListening,
-    speak: speakWithEdgeTTS,
+    speak: speakWithNativeAPI,
     stopSpeaking,
     replayLastMessage,
     resetConversation,
