@@ -122,7 +122,8 @@ const AIDataExtractor = ({ messages, insuranceType, onSaveSuccess }: AIDataExtra
     console.log('🔍 Extraction de toutes les données de la conversation...');
     
     // Séparer les messages utilisateur et assistant
-    const userMessages = messages.filter(m => m.role === 'user').map(m => m.content).join(' ');
+    const userMessagesArray = messages.filter(m => m.role === 'user').map(m => m.content);
+    const userMessages = userMessagesArray.join(' ');
     const allText = messages.map(m => m.content).join(' ');
     
     const extractedData: any = {};
@@ -256,54 +257,62 @@ const AIDataExtractor = ({ messages, insuranceType, onSaveSuccess }: AIDataExtra
       }
     }
 
-    // Extraction de l'adresse complète depuis les messages utilisateur
-    // On cherche UNIQUEMENT les messages contenant un type de voie connu
+    // Extraction de l'adresse complète - on cherche dans CHAQUE message individuellement
     const typesVoie = ['rue', 'avenue', 'boulevard', 'place', 'impasse', 'chemin', 'allée', 'route', 'square', 'cours', 'passage', 'cité', 'domaine', 'villa', 'quai', 'esplanade', 'promenade'];
     const typesVoiePattern = typesVoie.join('|');
     
-    // Pattern strict : N° + type de voie + texte jusqu'au CP ou fin
-    const adressePatterns = [
-      new RegExp(`(\\d+\\s+(?:${typesVoiePattern})\\s+[^,.!?\\d]*?)\\s*(?:[,\\s]+\\b([0-9]{5})\\b)?`, 'i'),
-      new RegExp(`((?:${typesVoiePattern})\\s+\\d+[^,.!?]*?)\\s*(?:[,\\s]+\\b([0-9]{5})\\b)?`, 'i'),
-      new RegExp(`((?:${typesVoiePattern})\\s+[^,.!?\\d]+?)\\s*(?:[,\\s]+\\b([0-9]{5})\\b)?`, 'i'),
-    ];
-
-    for (const pattern of adressePatterns) {
-      const match = userMessages.match(pattern);
-      if (match) {
-        const adresse = match[1]?.trim();
-        const cp = match[2] || null;
-        // Vérifier que l'adresse a du sens (au moins 5 caractères, pas que des chiffres)
-        if (adresse && adresse.length >= 5 && !/^\d+$/.test(adresse)) {
-          extractedData.adresse_complete = adresse;
-          if (cp) {
-            extractedData.code_postal = cp;
+    // Chercher dans chaque message utilisateur séparément
+    for (const singleMessage of userMessagesArray) {
+      if (extractedData.adresse_complete) break;
+      
+      const adressePatterns = [
+        // Pattern 1: N° + type de voie + texte  (ex: "15 rue de Paris")
+        new RegExp(`(\\d+(?:\\s*(?:bis|ter|quater))?\\s+(?:${typesVoiePattern})\\s+[^,.!?\\d]*?)\\s*(?:[,\\s]+(\\d{5}))?`, 'i'),
+        // Pattern 2: type de voie + N° + texte  (ex: "rue 206 n 17 oulfa")
+        new RegExp(`((?:${typesVoiePattern})\\s+\\d+(?:\\s*(?:bis|ter|quater))?\\s+(?:n(?:°|umero)?\\.?\\s*)?\\d+[^,.!?]*?)\\s*(?:[,\\s]+(\\d{5}))?`, 'i'),
+        // Pattern 3: type de voie + texte + N°  (ex: "rue des lilas 15")
+        new RegExp(`((?:${typesVoiePattern})\\s+[^,.!?\\d]+?\\s+\\d+(?:\\s*(?:bis|ter|quater))?)\\s*(?:[,\\s]+(\\d{5}))?`, 'i'),
+        // Pattern 4: N° + type de voie court (ex: "206 rue oulfa")
+        new RegExp(`(\\d+(?:\\s*(?:bis|ter|quater))?\\s+(?:${typesVoiePattern})\\s+\\S+)\\s*(?:[,\\s]+(\\d{5}))?`, 'i'),
+      ];
+      
+      for (const pattern of adressePatterns) {
+        const match = singleMessage.match(pattern);
+        if (match) {
+          const adresse = match[1]?.trim();
+          const cp = match[2] || null;
+          if (adresse && adresse.length >= 5 && !/^\d+$/.test(adresse)) {
+            extractedData.adresse_complete = adresse;
+            if (cp) {
+              extractedData.code_postal = cp;
+            }
+            console.log(`🏠 Adresse trouvée: ${extractedData.adresse_complete}`);
+            console.log(`📮 Code postal trouvé: ${extractedData.code_postal}`);
+            break;
           }
-          console.log(`🏠 Adresse trouvée: ${extractedData.adresse_complete}`);
-          console.log(`📮 Code postal trouvé: ${extractedData.code_postal}`);
-          break;
         }
       }
     }
 
-    // Extraction du code postal UNIQUEMENT si pas encore trouvé et en contexte adresse
+    // Extraction du code postal UNIQUEMENT si pas encore trouvé
     if (!extractedData.code_postal) {
       const codePostalPatterns = [
-        /(?:code\s+postal|cp)[:\s]*([0-9]{5})/i,
-        /([0-9]{5})\s*(?:Paris|Lyon|Marseille|Toulouse|Nice|Nantes|Strasbourg|Montpellier|Bordeaux|Lille|Clermont|Dijon|Grenoble|Le\s+Havre|Reims|Toulon|Saint-|Stras)/i,
-        new RegExp(`(?:${typesVoiePattern})\\s+[^,.!?\\d]*?\\b([0-9]{5})\\b`, 'i'),
+        /(?:code\s+postal|cp)[:\s]*(\d{5})/i,
+        new RegExp(`(?:${typesVoiePattern})\\s+\\S[^\\n]*?\\s(\\d{5})\\s`, 'i'),
       ];
 
-      for (const pattern of codePostalPatterns) {
-        const match = userMessages.match(pattern);
-        if (match) {
-          const cp = match[1];
-          // Vérifier que c'est un vrai CP français (01-99 + 3 chiffres)
-          const dept = parseInt(cp.substring(0, 2));
-          if (dept >= 1 && dept <= 99) {
-            extractedData.code_postal = cp;
-            console.log(`📮 Code postal trouvé: ${extractedData.code_postal}`);
-            break;
+      for (const singleMessage of userMessagesArray) {
+        if (extractedData.code_postal) break;
+        for (const pattern of codePostalPatterns) {
+          const match = singleMessage.match(pattern);
+          if (match) {
+            const cp = match[1];
+            const dept = parseInt(cp.substring(0, 2));
+            if (dept >= 1 && dept <= 99) {
+              extractedData.code_postal = cp;
+              console.log(`📮 Code postal trouvé: ${extractedData.code_postal}`);
+              break;
+            }
           }
         }
       }
