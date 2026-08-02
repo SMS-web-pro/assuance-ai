@@ -275,7 +275,8 @@ const AIDataExtractor = ({ messages, insuranceType, onSaveSuccess }: AIDataExtra
     const codePostalPatterns = [
       /(?:code\s+postal|cp)[:\s]*([0-9]{5})/i,
       /([0-9]{5})\s*(?:Paris|Lyon|Marseille|Toulouse|Nice|Nantes|Strasbourg|Montpellier|Bordeaux|Lille)/i,
-      /\b([0-9]{5})\b/g
+      /(?:adresse|habite|domicile|ville|city)[:\s]*[^0-9]*([0-9]{5})/i,
+      /\b([0-9]{5})\b/
     ];
 
     for (const pattern of codePostalPatterns) {
@@ -289,14 +290,37 @@ const AIDataExtractor = ({ messages, insuranceType, onSaveSuccess }: AIDataExtra
 
     // Extraction de la date de naissance depuis les messages utilisateur
     const naissancePatterns = [
-      /(?:né|née|naissance|date\s+de\s+naissance)[:\s]*(?:le\s+)?([0-9]{1,2}[\/\-][0-9]{1,2}[\/\-][0-9]{4})/i,
-      /(?:date\s+de\s+naissance)[:\s]*([0-9]{1,2}[\/\-][0-9]{1,2}[\/\-][0-9]{4})/i
+      /(?:né|née|naissance|date\s+de\s+naissance|né\s+le|née\s+le|je\s+suis\s+né|date\s+de\s+naiss?ance)[:\s]*(?:le\s+)?([0-9]{1,2}[\/\-\.][0-9]{1,2}[\/\-\.][0-9]{4})/i,
+      /(?:né|née|naissance|date\s+de\s+naissance|né\s+le|née\s+le|je\s+suis\s+né|date\s+de\s+naiss?ance)[:\s]*(?:le\s+)?([0-9]{1,2}\s+(?:janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre)\s+[0-9]{4})/i,
+      /([0-9]{1,2}[\/\-\.][0-9]{1,2}[\/\-\.][0-9]{4})/,
+      /([0-9]{1,2}\s+(?:janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre)\s+[0-9]{4})/i
     ];
 
     for (const pattern of naissancePatterns) {
       const match = userMessages.match(pattern);
       if (match) {
-        const convertedDate = convertFrenchDateToISO(match[1]);
+        const dateStr = match[1];
+        // Essayer de convertir le format français
+        let convertedDate = convertFrenchDateToISO(dateStr);
+        
+        // Si pas de conversion, essayer le format avec mois textuel
+        if (!convertedDate) {
+          const moisMap: Record<string, string> = {
+            'janvier': '01', 'février': '02', 'mars': '03', 'avril': '04',
+            'mai': '05', 'juin': '06', 'juillet': '07', 'août': '08',
+            'septembre': '09', 'octobre': '10', 'novembre': '11', 'décembre': '12'
+          };
+          const textMatch = dateStr.match(/(\d{1,2})\s+(\w+)\s+(\d{4})/);
+          if (textMatch) {
+            const day = textMatch[1].padStart(2, '0');
+            const month = moisMap[textMatch[2].toLowerCase()];
+            const year = textMatch[3];
+            if (month) {
+              convertedDate = `${year}-${month}-${day}`;
+            }
+          }
+        }
+        
         if (convertedDate) {
           extractedData.date_naissance = convertedDate;
           console.log(`🎂 Date de naissance trouvée: ${extractedData.date_naissance}`);

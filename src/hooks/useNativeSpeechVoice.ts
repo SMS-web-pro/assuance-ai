@@ -226,7 +226,8 @@ export const useNativeSpeechVoice = ({
       'M.': 'Monsieur', 'Mme': 'Madame', 'Mlle': 'Mademoiselle',
       'Dr': 'Docteur', 'Pr': 'Professeur',
       '€': 'euros', '%': 'pour cent', '&': 'et',
-      'RDV': 'rendez-vous', 'OK': 'd\'accord', 'ok': 'd\'accord'
+      'RDV': 'rendez-vous', 'OK': 'd\'accord', 'ok': 'd\'accord',
+      '/': 'sur'
     };
 
     Object.entries(corrections).forEach(([abbrev, full]) => {
