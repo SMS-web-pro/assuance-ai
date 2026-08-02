@@ -258,8 +258,10 @@ const AIDataExtractor = ({ messages, insuranceType, onSaveSuccess }: AIDataExtra
 
     // Extraction de l'adresse complète depuis les messages utilisateur
     const adressePatterns = [
-      /(?:adresse|habite(?:\s+au)?|domicile(?:\s+au)?|j'habite)[:\s]+([^.!?]*?)(?:\s*(?:code\s+postal|cp|[0-9]{5})|$)/i,
-      /(?:rue|avenue|boulevard|place|impasse)[:\s]+([^.!?]*?)(?:\s*(?:code\s+postal|cp|[0-9]{5})|$)/i
+      /(?:adresse|habite(?:\s+au)?|domicile(?:\s+au)?|j'habite|mon adresse|ma résidence)[:\s]+([^.!?]*?)(?:\s*(?:code\s+postal|cp|[0-9]{5})|$)/i,
+      /(?:rue|avenue|boulevard|place|impasse|chemin|allée|route|square|cours|passage)[:\s]+([^.!?]*?)(?:\s*(?:code\s+postal|cp|[0-9]{5})|$)/i,
+      /(\d+\s+(?:rue|avenue|boulevard|place|impasse|chemin|allée|route|square|cours|passage)[^.!?]*?)(?:\s*(?:code\s+postal|cp|[0-9]{5})|$)/i,
+      /(\d+[^.!?]*?(?:rue|avenue|boulevard|place|impasse|chemin|allée|route|square|cours|passage)[^.!?]*?)(?:\s*(?:code\s+postal|cp|[0-9]{5})|$)/i
     ];
 
     for (const pattern of adressePatterns) {
@@ -275,7 +277,7 @@ const AIDataExtractor = ({ messages, insuranceType, onSaveSuccess }: AIDataExtra
     const codePostalPatterns = [
       /(?:code\s+postal|cp)[:\s]*([0-9]{5})/i,
       /([0-9]{5})\s*(?:Paris|Lyon|Marseille|Toulouse|Nice|Nantes|Strasbourg|Montpellier|Bordeaux|Lille)/i,
-      /(?:adresse|habite|domicile|ville|city)[:\s]*[^0-9]*([0-9]{5})/i,
+      /(?:adresse|habite|domicile|ville|city|rue|avenue|boulevard)[:\s]*[^0-9]*([0-9]{5})/i,
       /\b([0-9]{5})\b/
     ];
 

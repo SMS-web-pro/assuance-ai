@@ -226,14 +226,17 @@ export const useNativeSpeechVoice = ({
       'M.': 'Monsieur', 'Mme': 'Madame', 'Mlle': 'Mademoiselle',
       'Dr': 'Docteur', 'Pr': 'Professeur',
       '€': 'euros', '%': 'pour cent', '&': 'et',
-      'RDV': 'rendez-vous', 'OK': 'd\'accord', 'ok': 'd\'accord',
-      '/': 'sur'
+      'RDV': 'rendez-vous', 'OK': 'd\'accord', 'ok': 'd\'accord'
     };
 
     Object.entries(corrections).forEach(([abbrev, full]) => {
       const regex = new RegExp(`\\b${abbrev.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'g');
       cleanedText = cleanedText.replace(regex, full);
     });
+
+    // / intelligent : entre chiffres → "sur", entre mots → espace
+    cleanedText = cleanedText.replace(/(\d)\s*\/\s*(\d)/g, '$1 sur $2');
+    cleanedText = cleanedText.replace(/([a-zA-ZÀ-ÿ])\s*\/\s*([a-zA-ZÀ-ÿ])/g, '$1 $2');
 
     // Nettoyage final
     cleanedText = cleanedText
