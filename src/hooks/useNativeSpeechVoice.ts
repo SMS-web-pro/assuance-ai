@@ -11,6 +11,12 @@ interface UseNativeSpeechVoiceProps {
   isActive?: boolean;
 }
 
+// Détecter mobile
+const isMobileDevice = () => {
+  if (typeof navigator === 'undefined') return false;
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+};
+
 const EDGE_TTS_VOICES: Record<string, Record<string, string>> = {
   'female': { default: 'fr-FR-DeniseNeural', vivienne: 'fr-FR-VivienneNeural' },
   'male': { default: 'fr-FR-HenriNeural' },
@@ -38,6 +44,7 @@ export const useNativeSpeechVoice = ({
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const hasSpokenNameRef = useRef<boolean>(false);
   const { toast } = useToast();
+  const isMobile = isMobileDevice();
 
   const loadAvailableVoices = useCallback(() => {
     if (!isActive) return;
@@ -142,8 +149,8 @@ export const useNativeSpeechVoice = ({
       }
 
       // Genre
-      const isMale = voiceName.includes('paul') || voiceName.includes('thomas') || voiceName.includes('henri') || voiceName.includes('male') || voiceName.includes('david') || voiceName.includes('mark');
-      const isFemale = voiceName.includes('marie') || voiceName.includes('julie') || voiceName.includes('hortense') || voiceName.includes('female') || voiceName.includes('zira') || voiceName.includes('hazel');
+      const isMale = voiceName.includes('paul') || voiceName.includes('thomas') || voiceName.includes('henri') || voiceName.includes('male') || voiceName.includes('david') || voiceName.includes('mark') || voiceName.includes('google FR');
+      const isFemale = voiceName.includes('marie') || voiceName.includes('julie') || voiceName.includes('hortense') || voiceName.includes('female') || voiceName.includes('zira') || voiceName.includes('hazel') || voiceName.includes('google FR');
 
       if ((gender === 'male' && isMale) || (gender === 'female' && isFemale)) {
         score += 200;
@@ -159,10 +166,10 @@ export const useNativeSpeechVoice = ({
       // Microsoft voices sont les meilleures sur Windows
       if (voiceName.includes('microsoft')) score += 80;
 
-      // Google voices sont bonnes aussi
-      if (voiceName.includes('google')) score += 70;
+      // Google voices sont bonnes aussi (surtout sur mobile)
+      if (voiceName.includes('google')) score += isMobile ? 100 : 70;
 
-      // Apple voices sont excellentes sur macOS
+      // Apple voices sont excellentes sur macOS/iOS
       if (voiceName.includes('apple') || voiceName.includes('samantha') || voiceName.includes('thomas')) score += 90;
 
       // Bonus langue française
@@ -305,23 +312,26 @@ export const useNativeSpeechVoice = ({
 
   // Configuration vocale par agent - CHAQUE AGENT A UNE VOIX UNIQUE
   const getAgentVoiceConfig = useCallback((agentName: string, gender: 'male' | 'female') => {
+    // Sur mobile, les voix sont différentes et les rate/pitch doivent être ajustés
+    const mobileMultiplier = isMobile ? 0.9 : 1.0;
+    
     const configs: Record<string, { rate: number; pitch: number; volume: number }> = {
       // HOMMES - tous Paul, mais chaque agent a un rythme et ton différents
-      'Marc Dubois':      { rate: 0.90, pitch: 0.85, volume: 1.0 },  // Auto: posé, grave, professionnel
-      'Alex Moreau':      { rate: 1.10, pitch: 1.00, volume: 1.0 },  // Moto: rapide, ton moyen, dynamique
-      'Pierre Delacroix': { rate: 0.80, pitch: 0.75, volume: 1.0 },  // Emprunteur: lent, très grave, sérieux
+      'Marc Dubois':      { rate: 0.90 * mobileMultiplier, pitch: isMobile ? 0.95 : 0.85, volume: 1.0 },
+      'Alex Moreau':      { rate: 1.10 * mobileMultiplier, pitch: isMobile ? 1.05 : 1.00, volume: 1.0 },
+      'Pierre Delacroix': { rate: 0.80 * mobileMultiplier, pitch: isMobile ? 0.90 : 0.75, volume: 1.0 },
       
       // FEMMES - Hortense et Julie, chaque agent a un rythme et ton différents
-      'Sophie Martin':      { rate: 0.92, pitch: 1.15, volume: 1.0 },  // Habitation: posée, douce
-      'Dr. Claire Rousseau': { rate: 0.88, pitch: 1.05, volume: 1.0 },  // Santé: lente, calme, experte
-      'Camille Durand':     { rate: 1.08, pitch: 1.25, volume: 1.0 }   // Voyage: rapide, aiguë, énergique
+      'Sophie Martin':      { rate: 0.92 * mobileMultiplier, pitch: isMobile ? 1.08 : 1.15, volume: 1.0 },
+      'Dr. Claire Rousseau': { rate: 0.88 * mobileMultiplier, pitch: isMobile ? 1.00 : 1.05, volume: 1.0 },
+      'Camille Durand':     { rate: 1.08 * mobileMultiplier, pitch: isMobile ? 1.15 : 1.25, volume: 1.0 }
     };
 
     return configs[agentName] || (gender === 'male' 
-      ? { rate: 0.90, pitch: 0.85, volume: 1.0 }
-      : { rate: 0.92, pitch: 1.15, volume: 1.0 }
+      ? { rate: 0.90, pitch: 0.90, volume: 1.0 }
+      : { rate: 0.92, pitch: 1.10, volume: 1.0 }
     );
-  }, []);
+  }, [isMobile]);
 
   // Analyse émotionnelle pour modulation légère
   const analyzeEmotion = useCallback((text: string) => {
