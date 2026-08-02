@@ -84,35 +84,37 @@ export const useNativeSpeechVoice = ({
       fallback: string[],
       characteristics: string[]
     }> = {
+      // HOMMES - tous utilisent Paul mais avec config différente
       'Marc Dubois': { 
-        preferred: ['Microsoft Paul Natural', 'Microsoft Paul', 'Google Français (France)', 'Thomas'],
-        fallback: ['paul', 'thomas', 'henri', 'microsoft', 'google'],
-        characteristics: ['professionnel', 'confiant', 'chaleureux']
-      },
-      'Sophie Martin': { 
-        preferred: ['Microsoft Hortense Natural', 'Microsoft Hortense', 'Google Français (France)', 'Marie'],
-        fallback: ['hortense', 'marie', 'julie', 'microsoft', 'google'],
-        characteristics: ['rassurante', 'précise', 'bienveillante']
-      },
-      'Dr. Claire Rousseau': { 
-        preferred: ['Microsoft Julie Natural', 'Microsoft Julie', 'Google Français (France)', 'Claire'],
-        fallback: ['julie', 'claire', 'marie', 'microsoft', 'google'],
-        characteristics: ['experte', 'empathique', 'professionnelle']
+        preferred: ['Microsoft Paul'],
+        fallback: ['paul'],
+        characteristics: ['professionnel', 'posé', 'calme']
       },
       'Alex Moreau': { 
-        preferred: ['Microsoft Thomas Natural', 'Microsoft Thomas', 'Google Français (France)', 'Alex'],
-        fallback: ['thomas', 'alex', 'paul', 'microsoft', 'google'],
-        characteristics: ['dynamique', 'passionné', 'moderne']
+        preferred: ['Microsoft Paul'],
+        fallback: ['paul'],
+        characteristics: ['dynamique', 'rapide', 'jeune']
       },
       'Pierre Delacroix': { 
-        preferred: ['Microsoft Paul Natural', 'Microsoft Paul', 'Google Français (France)', 'Pierre'],
-        fallback: ['paul', 'pierre', 'henri', 'microsoft', 'google'],
-        characteristics: ['sérieux', 'fiable', 'expert']
+        preferred: ['Microsoft Paul'],
+        fallback: ['paul'],
+        characteristics: ['sérieux', 'lent', 'expérimenté']
+      },
+      // FEMMES - Hortense et Julie
+      'Sophie Martin': { 
+        preferred: ['Microsoft Hortense'],
+        fallback: ['hortense'],
+        characteristics: ['chaleureuse', 'douce', 'bienveillante']
+      },
+      'Dr. Claire Rousseau': { 
+        preferred: ['Microsoft Julie'],
+        fallback: ['julie'],
+        characteristics: ['experte', 'claire', 'professionnelle']
       },
       'Camille Durand': { 
-        preferred: ['Microsoft Hortense Natural', 'Microsoft Hortense', 'Google Français (France)', 'Camille'],
-        fallback: ['hortense', 'camille', 'julie', 'microsoft', 'google'],
-        characteristics: ['énergique', 'optimiste', 'aventurière']
+        preferred: ['Microsoft Julie'],
+        fallback: ['julie'],
+        characteristics: ['énergique', 'vive', 'optimiste']
       }
     };
 
@@ -301,23 +303,23 @@ export const useNativeSpeechVoice = ({
     return chunks;
   }, []);
 
-  // Configuration vocale par agent avec différenciation homme/femme
+  // Configuration vocale par agent - CHAQUE AGENT A UNE VOIX UNIQUE
   const getAgentVoiceConfig = useCallback((agentName: string, gender: 'male' | 'female') => {
     const configs: Record<string, { rate: number; pitch: number; volume: number }> = {
-      // HOMMES : voix graves naturelles
-      'Marc Dubois':      { rate: 0.92, pitch: 0.90, volume: 1.0 },  // Posé, professionnel
-      'Alex Moreau':      { rate: 1.00, pitch: 0.95, volume: 1.0 },  // Dynamique
-      'Pierre Delacroix': { rate: 0.88, pitch: 0.85, volume: 1.0 },  // Sérieux, lent
+      // HOMMES - tous Paul, mais chaque agent a un rythme et ton différents
+      'Marc Dubois':      { rate: 0.90, pitch: 0.85, volume: 1.0 },  // Auto: posé, grave, professionnel
+      'Alex Moreau':      { rate: 1.10, pitch: 1.00, volume: 1.0 },  // Moto: rapide, ton moyen, dynamique
+      'Pierre Delacroix': { rate: 0.80, pitch: 0.75, volume: 1.0 },  // Emprunteur: lent, très grave, sérieux
       
-      // FEMMES : voix naturelles
-      'Sophie Martin':      { rate: 0.95, pitch: 1.10, volume: 1.0 },  // Chaleureuse
-      'Dr. Claire Rousseau': { rate: 0.92, pitch: 1.08, volume: 1.0 },  // Experte, calme
-      'Camille Durand':     { rate: 1.02, pitch: 1.12, volume: 1.0 }   // Énergique
+      // FEMMES - Hortense et Julie, chaque agent a un rythme et ton différents
+      'Sophie Martin':      { rate: 0.92, pitch: 1.15, volume: 1.0 },  // Habitation: posée, douce
+      'Dr. Claire Rousseau': { rate: 0.88, pitch: 1.05, volume: 1.0 },  // Santé: lente, calme, experte
+      'Camille Durand':     { rate: 1.08, pitch: 1.25, volume: 1.0 }   // Voyage: rapide, aiguë, énergique
     };
 
     return configs[agentName] || (gender === 'male' 
-      ? { rate: 0.92, pitch: 0.90, volume: 1.0 }
-      : { rate: 0.95, pitch: 1.10, volume: 1.0 }
+      ? { rate: 0.90, pitch: 0.85, volume: 1.0 }
+      : { rate: 0.92, pitch: 1.15, volume: 1.0 }
     );
   }, []);
 
