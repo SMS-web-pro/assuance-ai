@@ -66,6 +66,8 @@ const NativeVoiceControls = ({
         onToggleListening={handleToggleListening}
         onTogglePlayback={handleTogglePlayback}
         onVoiceMessage={onVoiceMessage}
+        onReplayLast={onReplayLastMessage}
+        hasLastMessage={hasLastMessage}
       />
     );
   }

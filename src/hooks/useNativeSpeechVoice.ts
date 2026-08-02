@@ -208,43 +208,51 @@ export const useNativeSpeechVoice = ({
     }
   }, [isActive]);
 
-  // Nettoyage du texte pour synthèse vocale
+  // Nettoyage du texte pour synthèse vocale - MOINS AGRESSIF pour garder le naturel
   const cleanTextForSpeech = useCallback((text: string): string => {
     let cleanedText = text;
     
-    // Supprimer markdown, emojis et symbols
+    // ÉTAPE 1: Supprimer uniquement le markdown visible (pas les connecteurs)
     cleanedText = cleanedText
-      .replace(/\*\*/g, '')
-      .replace(/\*/g, '')
-      .replace(/#{1,6}\s/g, '')
-      .replace(/`{1,3}[^`]*`{1,3}/g, '')
-      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-      // Supprimer symbols de séparation
-      .replace(/[-]{3,}/g, '')
-      .replace(/[=]{3,}/g, '')
-      .replace(/[•]{3,}/g, '')
-      .replace(/[─]{3,}/g, '')
-      .replace(/[━]{3,}/g, '')
-      .replace(/[═]{3,}/g, '')
-      .replace(/[—]{3,}/g, '')
-      // Supprimer bullet points et icons
-      .replace(/[►▸▹‣⁃]/g, '')
+      // Markdown basique
+      .replace(/\*\*([^*]+)\*\*/g, '$1')  // gras → garder le texte
+      .replace(/\*([^*]+)\*/g, '$1')      // italique → garder le texte
+      .replace(/#{1,6}\s/g, '')           // titres
+      .replace(/`{1,3}[^`]*`{1,3}/g, '') // code
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // liens → garder le texte
+    
+    // ÉTAPE 2: Supprimer les emojis et symboles (pas les mots)
+    cleanedText = cleanedText
+      // Emojis courants
+      .replace(/[\u{1F600}-\u{1F64F}]/gu, '')
+      .replace(/[\u{1F300}-\u{1F5FF}]/gu, '')
+      .replace(/[\u{1F680}-\u{1F6FF}]/gu, '')
+      .replace(/[\u{1F1E0}-\u{1F1FF}]/gu, '')
+      .replace(/[\u{2600}-\u{26FF}]/gu, '')
+      .replace(/[\u{2700}-\u{27BF}]/gu, '')
+      .replace(/[\u{1F900}-\u{1F9FF}]/gu, '')
+      .replace(/[\u{1FA70}-\u{1FAFF}]/gu, '')
+      // Symboles spécifiques
+      .replace(/[📞📧📱💡🎯🔒🛡️🏠📐🏗️📅]/g, '')
       .replace(/[✓✔✅☑️]/g, '')
       .replace(/[❌✗✘]/g, '')
-      .replace(/[📞📧📱💡🎯🔒🛡️🏠📐🏗️📅]/g, '')
-      // Supprimer emojis restants
-      .replace(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F900}-\u{1F9FF}]|[\u{1FA70}-\u{1FAFF}]/gu, '')
-      // Supprimer pipes de tableau
-      .replace(/\|/g, '')
-      // Supprimer crochets et accolades vides
-      .replace(/[\[\]{}]/g, '');
+      .replace(/[►▸▹‣⁃]/g, '')
+      // Séparateurs visuels (garder un espace)
+      .replace(/[-]{3,}/g, ' ')
+      .replace(/[═]{3,}/g, ' ')
+      .replace(/[─]{3,}/g, ' ')
+      // Pipes de tableau
+      .replace(/\|/g, ' ')
+      // Crochets vides
+      .replace(/[\[\]{}]/g, '')
 
-    // Corrections françaises
+    // ÉTAPE 3: Corrections françaises pour la voix
     const corrections: Record<string, string> = {
       'M.': 'Monsieur', 'Mme': 'Madame', 'Mlle': 'Mademoiselle',
       'Dr': 'Docteur', 'Pr': 'Professeur',
       '€': 'euros', '%': 'pour cent', '&': 'et',
-      'RDV': 'rendez-vous', 'OK': 'd\'accord', 'ok': 'd\'accord'
+      'RDV': 'rendez-vous', 'OK': 'd\'accord', 'ok': 'd\'accord',
+      'etc': 'et cetera', 'Ex': 'exemple'
     };
 
     Object.entries(corrections).forEach(([abbrev, full]) => {
@@ -252,111 +260,147 @@ export const useNativeSpeechVoice = ({
       cleanedText = cleanedText.replace(regex, full);
     });
 
-    // / intelligent : entre chiffres → "sur", entre mots → espace
+    // ÉTAPE 4: Gestion intelligente du slash
+    // Entre chiffres → "sur" (ex: 80/100 → 80 sur 100)
     cleanedText = cleanedText.replace(/(\d)\s*\/\s*(\d)/g, '$1 sur $2');
+    // Entre mots → espace (ex: auto/moto → auto moto)
     cleanedText = cleanedText.replace(/([a-zA-ZÀ-ÿ])\s*\/\s*([a-zA-ZÀ-ÿ])/g, '$1 $2');
 
-    // Nettoyage final
+    // ÉTAPE 5: Nettoyage final - garder la ponctuation naturelle
     cleanedText = cleanedText
-      .replace(/\s+/g, ' ')
-      .trim();
+      .replace(/\s+/g, ' ')  // espaces multiples → un seul
+      .replace(/^\s+|\s+$/g, '') // trim
+      // Pas de suppression de ponctuation ! Garder . , ! ? etc.
 
     return cleanedText;
   }, []);
 
-  // Découpage du texte en chunks pour pauses naturelles
+  // Découpage du texte en chunks pour pauses naturelles - AMÉLIORÉ
   const splitIntoNaturalChunks = useCallback((text: string): Array<{ text: string; pauseAfter: number }> => {
     const chunks: Array<{ text: string; pauseAfter: number }> = [];
     
-    const paragraphs = text.split(/\n+/).filter(p => p.trim().length > 0);
+    // D'abord séparer par paragraphes (double saut de ligne)
+    const paragraphs = text.split(/\n{2,}/).filter(p => p.trim().length > 0);
     
     for (const paragraph of paragraphs) {
-      const sentences = paragraph.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 2);
+      // Si le paragraphe est très court, le gard tel quel
+      if (paragraph.trim().length < 40) {
+        chunks.push({ text: paragraph.trim(), pauseAfter: 200 });
+        continue;
+      }
+      
+      // Séparer par phrases (point, point d'interrogation, point d'exclamation)
+      const sentences = paragraph
+        .split(/(?<=[.!?])\s+/)
+        .filter(s => s.trim().length > 2);
       
       for (const sentence of sentences) {
-        if (sentence.length > 80) {
-          const parts = sentence.split(/,\s*/);
+        const trimmed = sentence.trim();
+        
+        // Phrase courte → garder en un chunk
+        if (trimmed.length <= 60) {
+          let pauseAfter = 180; // Défaut
+          if (trimmed.endsWith('.')) pauseAfter = 250;
+          else if (trimmed.endsWith('?')) pauseAfter = 300; // Plus long après question
+          else if (trimmed.endsWith('!')) pauseAfter = 250;
+          else if (trimmed.endsWith(':')) pauseAfter = 200;
+          else if (trimmed.endsWith(';')) pauseAfter = 150;
+          
+          chunks.push({ text: trimmed, pauseAfter });
+        } else {
+          // Phrase longue → découper aux virgules
+          const parts = trimmed.split(/,\s*/);
+          
           for (let i = 0; i < parts.length; i++) {
             const part = parts[i].trim();
-            if (part.length > 2) {
-              const isLast = i === parts.length - 1;
-              let pauseAfter = 50; // Virgule par défaut
+            if (part.length < 3) continue;
+            
+            const isLast = i === parts.length - 1;
+            let pauseAfter = 100; // Virgule par défaut
+            
+            if (isLast) {
+              // Dernière partie = fin de phrase
+              if (trimmed.endsWith('.')) pauseAfter = 250;
+              else if (trimmed.endsWith('?')) pauseAfter = 300;
+              else if (trimmed.endsWith('!')) pauseAfter = 250;
+              else pauseAfter = 200;
+            } else {
+              // Milieu de phrase - pause plus courte
+              pauseAfter = 100;
               
-              if (isLast) {
-                if (sentence.endsWith('.')) pauseAfter = 120;
-                else if (sentence.endsWith('!')) pauseAfter = 120;
-                else if (sentence.endsWith('?')) pauseAfter = 120;
-                else pauseAfter = 100;
-              }
-              
-              chunks.push({ text: part, pauseAfter });
+              // Si la partie est longue, ajouter une micro-pause
+              if (part.length > 40) pauseAfter = 150;
             }
+            
+            chunks.push({ text: part, pauseAfter });
           }
-        } else {
-          let pauseAfter = 120; // Défaut = point
-          if (sentence.endsWith('.')) pauseAfter = 120;
-          else if (sentence.endsWith('!')) pauseAfter = 120;
-          else if (sentence.endsWith('?')) pauseAfter = 120;
-          else if (sentence.endsWith(':')) pauseAfter = 80;
-          else if (sentence.endsWith(';')) pauseAfter = 60;
-          
-          // Bonus respiration pour phrases longues
-          if (sentence.length > 80) pauseAfter += 50;
-          
-          chunks.push({ text: sentence, pauseAfter });
         }
       }
+      
+      // Pause entre paragraphes
+      chunks.push({ text: '', pauseAfter: 300 });
+    }
+    
+    // Supprimer les chunks vides en fin de liste
+    while (chunks.length > 0 && chunks[chunks.length - 1].text === '') {
+      chunks.pop();
     }
     
     return chunks;
   }, []);
 
   // Configuration vocale par agent - CHAQUE AGENT A UNE VOIX UNIQUE
+  // Mobile: paramètres plus extrêmes pour compenser les haut-parleurs petits
   const getAgentVoiceConfig = useCallback((agentName: string, gender: 'male' | 'female') => {
-    // Sur mobile, les voix sont différentes et les rate/pitch doivent être plus distincts
-    const configs: Record<string, { rate: number; pitch: number; volume: number }> = {
-      // HOMMES - tous Paul, mais chaque agent a un rythme et ton TRÈS différents
-      'Marc Dubois':      { 
-        rate: isMobile ? 0.85 : 0.90, 
-        pitch: isMobile ? 0.90 : 0.85, 
-        volume: 1.0 
+    const configs: Record<string, { rate: number; pitch: number; volume: number; emphasis: string[] }> = {
+      // HOMMES - voix graves, rythmes très distincts
+      'Marc Dubois': { 
+        rate: isMobile ? 0.82 : 0.90, 
+        pitch: isMobile ? 0.78 : 0.85, 
+        volume: 1.0,
+        emphasis: ['calme', 'posé', 'expert']
       },
-      'Alex Moreau':      { 
-        rate: isMobile ? 1.15 : 1.10, 
-        pitch: isMobile ? 1.10 : 1.00, 
-        volume: 1.0 
+      'Alex Moreau': { 
+        rate: isMobile ? 1.18 : 1.10, 
+        pitch: isMobile ? 1.02 : 1.00, 
+        volume: 1.0,
+        emphasis: ['dynamique', 'jeune', 'entraînant']
       },
       'Pierre Delacroix': { 
-        rate: isMobile ? 0.75 : 0.80, 
-        pitch: isMobile ? 0.80 : 0.75, 
-        volume: 1.0 
+        rate: isMobile ? 0.72 : 0.80, 
+        pitch: isMobile ? 0.70 : 0.75, 
+        volume: 1.0,
+        emphasis: ['sérieux', 'expérimenté', 'rassurant']
       },
       
-      // FEMMES - Hortense et Julie, chaque agent a un rythme et ton TRÈS différents
-      'Sophie Martin':      { 
-        rate: isMobile ? 0.88 : 0.92, 
-        pitch: isMobile ? 1.20 : 1.15, 
-        volume: 1.0 
+      // FEMMES - voix plus aigües, chaque agent a un caractère unique
+      'Sophie Martin': { 
+        rate: isMobile ? 0.86 : 0.92, 
+        pitch: isMobile ? 1.25 : 1.15, 
+        volume: 1.0,
+        emphasis: ['chaleureuse', 'douce', 'bienveillante']
       },
       'Dr. Claire Rousseau': { 
-        rate: isMobile ? 0.82 : 0.88, 
-        pitch: isMobile ? 1.10 : 1.05, 
-        volume: 1.0 
+        rate: isMobile ? 0.80 : 0.88, 
+        pitch: isMobile ? 1.12 : 1.05, 
+        volume: 1.0,
+        emphasis: ['experte', 'claire', 'rassurante']
       },
-      'Camille Durand':     { 
-        rate: isMobile ? 1.12 : 1.08, 
-        pitch: isMobile ? 1.30 : 1.25, 
-        volume: 1.0 
+      'Camille Durand': { 
+        rate: isMobile ? 1.15 : 1.08, 
+        pitch: isMobile ? 1.35 : 1.25, 
+        volume: 1.0,
+        emphasis: ['énergique', 'vive', 'optimiste']
       }
     };
 
     return configs[agentName] || (gender === 'male' 
-      ? { rate: 0.90, pitch: 0.90, volume: 1.0 }
-      : { rate: 0.92, pitch: 1.10, volume: 1.0 }
+      ? { rate: 0.88, pitch: 0.82, volume: 1.0, emphasis: ['neutre'] }
+      : { rate: 0.90, pitch: 1.15, volume: 1.0, emphasis: ['neutre'] }
     );
   }, [isMobile]);
 
-  // Analyse émotionnelle pour modulation légère
+  // Analyse émotionnelle élargie pour modulation vocale naturelle
   const analyzeEmotion = useCallback((text: string) => {
     const lower = text.toLowerCase();
     
@@ -364,44 +408,116 @@ export const useNativeSpeechVoice = ({
     let pitchMod = 1.0;
     let volumeMod = 1.0;
 
-    // Joie / enthousiasme - légère accélération
-    if (/(?:merci|parfait|excellent|super|génial|formidable|bravo|content|ravi)/.test(lower)) {
-      rateMod *= 1.05;
+    // === ÉMOTIONS POSITIVES ===
+    // Joie / enthousiasme - légère accélération, ton plus haut
+    if (/(?:merci|parfait|excellent|super|génial|formidable|bravo|content|ravi|fantastique|magnifique)/.test(lower)) {
+      rateMod *= 1.06;
+      pitchMod *= 1.04;
+      volumeMod *= 1.02;
+    }
+
+    // Confirmation / validation - ton rassurant
+    if (/(?:exactement|tout à fait|absolument|c'est ça|vous avez raison|parfait|très bien)/.test(lower)) {
+      rateMod *= 0.96;
+      pitchMod *= 1.02;
+      volumeMod *= 1.01;
+    }
+
+    // === ÉMOTIONS NEUTRES ===
+    // Présentation / information - rythme normal, clair
+    if (/(?:je suis|nous sommes|notre|votre|permettez|permettez-moi|je vais|nous allons)/.test(lower)) {
+      rateMod *= 0.98;
+      pitchMod *= 1.00;
+      volumeMod *= 1.00;
+    }
+
+    // Question - légère accélération, ton montant
+    if (/\?/.test(text)) {
+      rateMod *= 1.02;
+      pitchMod *= 1.03;
+      volumeMod *= 1.00;
+    }
+
+    // === ÉMOTIONS NÉGATIVES ===
+    // Inquiétude / problème - ralentissement, ton plus grave
+    if (/(?:problème|souci|difficile|compliqué|inquiet|grave|attention|risque|malheureusement|dommage)/.test(lower)) {
+      rateMod *= 0.93;
+      pitchMod *= 0.96;
+      volumeMod *= 0.98;
+    }
+
+    // Excuse / regret - ton doux, ralenti
+    if (/(?:désolé|excusez|pardon|regrette|navré)/.test(lower)) {
+      rateMod *= 0.92;
+      pitchMod *= 0.97;
+      volumeMod *= 0.97;
+    }
+
+    // === URGENCE ===
+    if (/(?:urgent|rapidement|vite|immédiatement|crucial|dès que possible|maintenant)/.test(lower)) {
+      rateMod *= 1.10;
+      pitchMod *= 1.02;
+      volumeMod *= 1.03;
+    }
+
+    // === EXPERTISE / SÉRIEUX ===
+    if (/(?:technique|spécialisé|professionnel|expert|précisément|conformément|réglementation|article|loi)/.test(lower)) {
+      rateMod *= 0.94;
+      pitchMod *= 0.97;
+      volumeMod *= 1.00;
+    }
+
+    // === EMPATHIE / ACCOMPAGNEMENT ===
+    if (/(?:comprends|accompagne|soutien|aide|écoute|accompagner|je suis là|pour vous|rassurez)/.test(lower)) {
+      rateMod *= 0.94;
+      pitchMod *= 1.02;
+      volumeMod *= 0.98;
+    }
+
+    // === CONSEIL / RECOMMANDATION ===
+    if (/(?:je vous conseille|je recommande|il vaut mieux|je suggère|pensez à|n'hésitez pas)/.test(lower)) {
+      rateMod *= 0.95;
+      pitchMod *= 1.01;
+      volumeMod *= 1.01;
+    }
+
+    // === VALEUR / ÉCONOMIE ===
+    if (/(?:économiser|réduction|avantage|meilleur prix|compétitif|offre|promotional)/.test(lower)) {
+      rateMod *= 1.04;
       pitchMod *= 1.03;
       volumeMod *= 1.02;
     }
 
-    // Inquiétude / problème - légère décélération
-    if (/(?:problème|soucis|difficile|compliqué|inquiet|grave|attention|risque)/.test(lower)) {
-      rateMod *= 0.95;
-      pitchMod *= 0.97;
-      volumeMod *= 0.98;
-    }
-
-    // Urgence
-    if (/(?:urgent|rapidement|vite|immédiatement|crucial|dès que possible)/.test(lower)) {
-      rateMod *= 1.08;
-      pitchMod *= 1.02;
-    }
-
-    // Expertise / sérieux
-    if (/(?:technique|spécialisé|professionnel|expert|précisément|conformément|réglementation)/.test(lower)) {
-      rateMod *= 0.95;
+    // === FIN DE CONVERSATION ===
+    if (/(?:merci|au revoir|à bientôt|bonne journée|excellente|cordialement)/.test(lower)) {
+      rateMod *= 0.96;
       pitchMod *= 0.98;
+      volumeMod *= 0.99;
     }
 
-    // Empathie / chaleur
-    if (/(?:comprends|accompagne|soutien|aide|écoute|accompagner|vous accompagne)/.test(lower)) {
-      rateMod *= 0.95;
-      pitchMod *= 1.02;
-      volumeMod *= 0.98;
-    }
-
-    // Exclamation
-    if (text.includes('!')) {
+    // === MODIFICATEURS DE PONCTUATION ===
+    // Point d'exclamation - enthousiasme léger
+    if (text.includes('!') && !text.includes('?')) {
       volumeMod *= 1.02;
       rateMod *= 0.98;
     }
+
+    // Plusieurs points d'exclamation - plus d'emphase
+    if (/!{2,}/.test(text)) {
+      volumeMod *= 1.04;
+      pitchMod *= 1.02;
+    }
+
+    // Points de suspension - hésitation, ralentissement
+    if (/\.{3,}/.test(text)) {
+      rateMod *= 0.92;
+      pitchMod *= 0.98;
+    }
+
+    // === LIMITES SÉCURITAIRES ===
+    rateMod = Math.max(0.75, Math.min(1.15, rateMod));
+    pitchMod = Math.max(0.85, Math.min(1.20, pitchMod));
+    volumeMod = Math.max(0.90, Math.min(1.10, volumeMod));
 
     return { rateMod, pitchMod, volumeMod };
   }, []);
