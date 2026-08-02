@@ -264,23 +264,7 @@ export const useNativeSpeechVoice = ({
     return cleanedText;
   }, []);
 
-  // Ajout de fillers conversationnels naturels
-  const addNaturalFillers = useCallback((text: string): string => {
-    // Probabilité de 12% d'ajouter un filler (pas trop fréquent)
-    if (Math.random() > 0.12) return text;
-    
-    const fillers = ['euh', 'hum', 'alors', 'voilà', 'en fait', 'du coup'];
-    const filler = fillers[Math.floor(Math.random() * fillers.length)];
-    
-    // Ajouter au début si la phrase commence par une conjonction
-    if (/^(et|mais|ou|donc|car)/i.test(text.trim())) {
-      return `${filler}, ${text}`;
-    }
-    
-    return text;
-  }, []);
-
-  // Découpage du texte en chunks pour pauses naturelles et humaines
+  // Découpage du texte en chunks pour pauses naturelles
   const splitIntoNaturalChunks = useCallback((text: string): Array<{ text: string; pauseAfter: number }> => {
     const chunks: Array<{ text: string; pauseAfter: number }> = [];
     
@@ -290,106 +274,89 @@ export const useNativeSpeechVoice = ({
       const sentences = paragraph.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 2);
       
       for (const sentence of sentences) {
-        // Ajouter variation aléatoire de pause pour effet humain
-        const randomVariation = Math.random() * 40 - 20; // -20ms à +20ms
-        
         if (sentence.length > 80) {
           const parts = sentence.split(/,\s*/);
           for (let i = 0; i < parts.length; i++) {
             const part = parts[i].trim();
             if (part.length > 2) {
               const isLast = i === parts.length - 1;
-              let pauseAfter = 60 + randomVariation; // Virgule avec variation
+              let pauseAfter = 50; // Virgule par défaut
               
               if (isLast) {
-                if (sentence.endsWith('.')) pauseAfter = 180 + randomVariation;
-                else if (sentence.endsWith('!')) pauseAfter = 160 + randomVariation;
-                else if (sentence.endsWith('?')) pauseAfter = 200 + randomVariation;
-                else pauseAfter = 140 + randomVariation;
+                if (sentence.endsWith('.')) pauseAfter = 120;
+                else if (sentence.endsWith('!')) pauseAfter = 120;
+                else if (sentence.endsWith('?')) pauseAfter = 120;
+                else pauseAfter = 100;
               }
               
               chunks.push({ text: part, pauseAfter });
             }
           }
         } else {
-          let pauseAfter = 180 + randomVariation; // Point avec variation
-          if (sentence.endsWith('.')) pauseAfter = 180 + randomVariation;
-          else if (sentence.endsWith('!')) pauseAfter = 160 + randomVariation;
-          else if (sentence.endsWith('?')) pauseAfter = 200 + randomVariation;
-          else if (sentence.endsWith(':')) pauseAfter = 120 + randomVariation;
-          else if (sentence.endsWith(';')) pauseAfter = 100 + randomVariation;
+          let pauseAfter = 120; // Défaut = point
+          if (sentence.endsWith('.')) pauseAfter = 120;
+          else if (sentence.endsWith('!')) pauseAfter = 120;
+          else if (sentence.endsWith('?')) pauseAfter = 120;
+          else if (sentence.endsWith(':')) pauseAfter = 80;
+          else if (sentence.endsWith(';')) pauseAfter = 60;
           
-          // Respiration plus longue pour phrases longues
-          if (sentence.length > 80) pauseAfter += 80;
+          // Bonus respiration pour phrases longues
+          if (sentence.length > 80) pauseAfter += 50;
           
           chunks.push({ text: sentence, pauseAfter });
         }
-      }
-      
-      // Pause entre paragraphes (respiration)
-      if (chunks.length > 0) {
-        chunks[chunks.length - 1].pauseAfter += 400;
       }
     }
     
     return chunks;
   }, []);
 
-  // Configuration vocale par agent - CHAQUE AGENT A UNE VOIX UNIQUE avec variations humaines
+  // Configuration vocale par agent - CHAQUE AGENT A UNE VOIX UNIQUE
   const getAgentVoiceConfig = useCallback((agentName: string, gender: 'male' | 'female') => {
-    // Même qualité sur mobile et desktop avec variations naturelles
+    // Sur mobile, les voix sont différentes et les rate/pitch doivent être plus distincts
     const configs: Record<string, { rate: number; pitch: number; volume: number }> = {
       // HOMMES - tous Paul, mais chaque agent a un rythme et ton TRÈS différents
       'Marc Dubois':      { 
-        rate: 0.92, // Plus naturel et légèrement plus lent
-        pitch: 0.88, // Plus grave pour autorité
+        rate: isMobile ? 0.85 : 0.90, 
+        pitch: isMobile ? 0.90 : 0.85, 
         volume: 1.0 
       },
       'Alex Moreau':      { 
-        rate: 1.05, // Dynamique mais pas trop rapide
-        pitch: 0.95, // Plus jeune et énergique
+        rate: isMobile ? 1.15 : 1.10, 
+        pitch: isMobile ? 1.10 : 1.00, 
         volume: 1.0 
       },
       'Pierre Delacroix': { 
-        rate: 0.85, // Posé et expérimenté
-        pitch: 0.82, // Sérieux et profond
+        rate: isMobile ? 0.75 : 0.80, 
+        pitch: isMobile ? 0.80 : 0.75, 
         volume: 1.0 
       },
       
       // FEMMES - Hortense et Julie, chaque agent a un rythme et ton TRÈS différents
       'Sophie Martin':      { 
-        rate: 0.95, // Chaleureuse et naturelle
-        pitch: 1.12, // Douce mais professionnelle
+        rate: isMobile ? 0.88 : 0.92, 
+        pitch: isMobile ? 1.20 : 1.15, 
         volume: 1.0 
       },
       'Dr. Claire Rousseau': { 
-        rate: 0.90, // Experte et posée
-        pitch: 1.08, // Claire et professionnelle
+        rate: isMobile ? 0.82 : 0.88, 
+        pitch: isMobile ? 1.10 : 1.05, 
         volume: 1.0 
       },
       'Camille Durand':     { 
-        rate: 1.02, // Énergique et vive
-        pitch: 1.18, // Optimiste et enthousiaste
+        rate: isMobile ? 1.12 : 1.08, 
+        pitch: isMobile ? 1.30 : 1.25, 
         volume: 1.0 
       }
     };
 
-    const baseConfig = configs[agentName] || (gender === 'male' 
-      ? { rate: 0.92, pitch: 0.88, volume: 1.0 }
-      : { rate: 0.95, pitch: 1.12, volume: 1.0 }
+    return configs[agentName] || (gender === 'male' 
+      ? { rate: 0.90, pitch: 0.90, volume: 1.0 }
+      : { rate: 0.92, pitch: 1.10, volume: 1.0 }
     );
+  }, [isMobile]);
 
-    // Ajouter une légère variation aléatoire pour effet humain (±3%)
-    const randomVariation = () => 0.97 + Math.random() * 0.06;
-    
-    return {
-      rate: baseConfig.rate * randomVariation(),
-      pitch: baseConfig.pitch * randomVariation(),
-      volume: baseConfig.volume
-    };
-  }, []);
-
-  // Analyse émotionnelle avancée pour modulation humaine
+  // Analyse émotionnelle pour modulation légère
   const analyzeEmotion = useCallback((text: string) => {
     const lower = text.toLowerCase();
     
@@ -397,66 +364,43 @@ export const useNativeSpeechVoice = ({
     let pitchMod = 1.0;
     let volumeMod = 1.0;
 
-    // Contexte de la phrase
-    const isQuestion = text.includes('?');
-    const hasExclamation = text.includes('!');
-    const isLongText = text.length > 150;
-
-    // Joie / enthousiasme - modulation plus naturelle
-    if (/(?:merci|parfait|excellent|super|génial|formidable|bravo|content|ravi|top|nickel)/.test(lower)) {
-      rateMod *= 1.08;
-      pitchMod *= 1.05;
-      volumeMod *= 1.05;
-    }
-
-    // Inquiétude / problème - ton plus apaisant
-    if (/(?:problème|soucis|difficile|compliqué|inquiet|grave|attention|risque|préoccupant)/.test(lower)) {
-      rateMod *= 0.92;
-      pitchMod *= 0.95;
-      volumeMod *= 0.95;
-    }
-
-    // Urgence - dynamique mais pas stressant
-    if (/(?:urgent|rapidement|vite|immédiatement|crucial|dès que possible|tout de suite)/.test(lower)) {
-      rateMod *= 1.12;
-      pitchMod *= 1.04;
-    }
-
-    // Expertise / sérieux - ton professionnel
-    if (/(?:technique|spécialisé|professionnel|expert|précisément|conformément|réglementation|spécifique)/.test(lower)) {
-      rateMod *= 0.93;
-      pitchMod *= 0.97;
-    }
-
-    // Empathie / chaleur - ton chaleureux
-    if (/(?:comprends|accompagne|soutien|aide|écoute|accompagner|vous accompagne|là pour vous|soutenir)/.test(lower)) {
-      rateMod *= 0.94;
-      pitchMod *= 1.04;
-      volumeMod *= 0.96;
-    }
-
-    // Question - intonation montante naturelle
-    if (isQuestion) {
-      pitchMod *= 1.18;
-      rateMod *= 0.97;
-    }
-
-    // Exclamation - emphase naturelle
-    if (hasExclamation) {
-      volumeMod *= 1.08;
-      rateMod *= 0.94;
+    // Joie / enthousiasme - légère accélération
+    if (/(?:merci|parfait|excellent|super|génial|formidable|bravo|content|ravi)/.test(lower)) {
+      rateMod *= 1.05;
       pitchMod *= 1.03;
+      volumeMod *= 1.02;
     }
 
-    // Texte long - plus lent pour la clarté
-    if (isLongText) {
-      rateMod *= 0.92;
+    // Inquiétude / problème - légère décélération
+    if (/(?:problème|soucis|difficile|compliqué|inquiet|grave|attention|risque)/.test(lower)) {
+      rateMod *= 0.95;
+      pitchMod *= 0.97;
+      volumeMod *= 0.98;
     }
 
-    // Expressions de transition - pauses naturelles
-    if (/(?:alors|donc|ensuite|enfin|par contre|cependant|en fait|voilà)/.test(lower)) {
-      rateMod *= 0.96;
+    // Urgence
+    if (/(?:urgent|rapidement|vite|immédiatement|crucial|dès que possible)/.test(lower)) {
+      rateMod *= 1.08;
       pitchMod *= 1.02;
+    }
+
+    // Expertise / sérieux
+    if (/(?:technique|spécialisé|professionnel|expert|précisément|conformément|réglementation)/.test(lower)) {
+      rateMod *= 0.95;
+      pitchMod *= 0.98;
+    }
+
+    // Empathie / chaleur
+    if (/(?:comprends|accompagne|soutien|aide|écoute|accompagner|vous accompagne)/.test(lower)) {
+      rateMod *= 0.95;
+      pitchMod *= 1.02;
+      volumeMod *= 0.98;
+    }
+
+    // Exclamation
+    if (text.includes('!')) {
+      volumeMod *= 1.02;
+      rateMod *= 0.98;
     }
 
     return { rateMod, pitchMod, volumeMod };
@@ -502,11 +446,7 @@ export const useNativeSpeechVoice = ({
       return;
     }
 
-    let cleanedText = cleanTextForSpeech(text);
-    
-    // Ajouter des fillers conversationnels naturels
-    cleanedText = addNaturalFillers(cleanedText);
-    
+    const cleanedText = cleanTextForSpeech(text);
     if (!cleanedText || cleanedText.trim().length < 2) {
       console.warn('⚠️ Texte nettoyé trop court');
       return;
@@ -529,9 +469,9 @@ export const useNativeSpeechVoice = ({
     const emotion = analyzeEmotion(cleanedText);
 
     const finalConfig = {
-      rate: Math.max(0.75, Math.min(1.15, baseConfig.rate * emotion.rateMod)),
-      pitch: Math.max(0.8, Math.min(1.25, baseConfig.pitch * emotion.pitchMod)),
-      volume: Math.max(0.9, Math.min(1.0, emotion.volumeMod))
+      rate: Math.max(0.7, Math.min(1.2, baseConfig.rate * emotion.rateMod)),
+      pitch: Math.max(0.7, Math.min(1.3, baseConfig.pitch * emotion.pitchMod)),
+      volume: 1.0
     };
 
     console.log(`🎙️ Lecture: ${isMobile ? 'MOBILE' : 'DESKTOP'} | Voice: ${selectedVoice.name} | Rate: ${finalConfig.rate.toFixed(2)} | Pitch: ${finalConfig.pitch.toFixed(2)}`);
