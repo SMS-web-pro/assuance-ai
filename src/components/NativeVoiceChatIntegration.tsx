@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useVoiceSystem } from '@/hooks/useVoiceSystem';
 import NativeVoiceControls from './NativeVoiceControls';
 
@@ -16,7 +16,8 @@ const NativeVoiceChatIntegration: React.FC<NativeVoiceChatIntegrationProps> = ({
   insuranceType,
   isActive = false
 }) => {
-  const [lastProcessedMessage, setLastProcessedMessage] = useState<string>('');
+  // Utiliser une ref pour track le dernier message traité (évite les re-renders)
+  const lastProcessedRef = useRef<string>('');
 
   // Un seul agent vocal masculin pour toutes les assurances
   const voiceSystem = useVoiceSystem({
@@ -32,38 +33,36 @@ const NativeVoiceChatIntegration: React.FC<NativeVoiceChatIntegrationProps> = ({
     isActive
   });
 
-  // Réinitialiser le message traité quand le type d'assurance change
-  useEffect(() => {
-    setLastProcessedMessage('');
-  }, [insuranceType]);
-
   // Déclencher la lecture vocale automatique
+  // PAS de dépendance à insuranceType pour éviter le reset
   useEffect(() => {
     if (!isActive) return;
 
     if (lastAgentMessage && 
         lastAgentMessage.trim() && 
-        lastAgentMessage !== lastProcessedMessage &&
+        lastAgentMessage !== lastProcessedRef.current &&
         lastAgentMessage.length > 10) {
       
       console.log(`🤖 Nouveau message détecté:`, lastAgentMessage.substring(0, 50) + '...');
       
+      // Marquer comme traité AVANT de parler
+      lastProcessedRef.current = lastAgentMessage;
+      
+      // Petit délai pour éviter les conflits
       setTimeout(() => {
         if (isActive && voiceSystem.speak) {
           voiceSystem.speak(lastAgentMessage);
         }
       }, 500);
-      
-      setLastProcessedMessage(lastAgentMessage);
     }
-  }, [lastAgentMessage, lastProcessedMessage, isActive, voiceSystem.speak]);
+  }, [lastAgentMessage, isActive, voiceSystem.speak]);
 
-  // Réinitialiser quand l'agent devient actif
+  // Reset seulement quand le message est vidé (pas quand insuranceType change)
   useEffect(() => {
-    if (isActive) {
-      setLastProcessedMessage('');
+    if (!lastAgentMessage || lastAgentMessage.trim() === '') {
+      lastProcessedRef.current = '';
     }
-  }, [isActive]);
+  }, [lastAgentMessage]);
 
   if (!isActive) {
     return null;
