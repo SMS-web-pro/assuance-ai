@@ -14,73 +14,130 @@ interface UseNativeSpeechVoiceProps {
 // ============================================================
 
 const VOICE_CONFIG = {
-  pitch: 0.88,    // Légèrement grave, masculin
-  rate: 0.90,     // Légèrement lent, clair et lisible
+  pitch: 0.85,    // Grave, masculin
+  rate: 0.88,     // Lent pour clarté
   volume: 1.0
 };
 
-// Patterns de voix masculines françaises (triées par qualité)
-const MALE_VOICE_NAMES = [
-  // Voix Microsoft de qualité (disponibles sur Windows/Edge)
-  'Microsoft Thomas - French (France)',
-  'Microsoft Antoine - French (Canada)',
-  'Thomas',
-  'Henri',
-  'Paul',
-  'Jacques',
-  'Lucas',
-  'Antoine',
-  'Nicolas',
-  'Philippe',
-  'Michel',
-  'Pierre',
-  'Jean',
-  'Marc',
-  'Arthur',
-  'Maxime',
-  'Mathieu',
-  'Vincent',
-  'male'
-];
-
 // ============================================================
-// SÉLECTION DE LA MEILLEURE VOIX MASCULINE
+// SÉLECTION DE VOIX AVANCÉE (basée sur useOptimizedVoice)
 // ============================================================
 
 let cachedMaleVoice: SpeechSynthesisVoice | null = null;
 
-function findBestMaleVoice(): SpeechSynthesisVoice | null {
-  // Cache pour éviter de rechercher à chaque fois
+function selectBestMaleFrenchVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null {
   if (cachedMaleVoice) return cachedMaleVoice;
+  if (voices.length === 0) return null;
 
-  const allVoices = speechSynthesis.getVoices();
-  if (allVoices.length === 0) return null;
+  // 1. Filtrer les voix françaises natives (locale = meilleure qualité)
+  const nativeFrenchVoices = voices.filter(voice => {
+    const lang = voice.lang.toLowerCase();
+    const name = voice.name.toLowerCase();
+    return (lang === 'fr-fr' || lang === 'fr') && 
+           !name.includes('english') && 
+           !name.includes('anglais') &&
+           !name.includes('en-');
+  });
 
-  // 1. Chercher par nom exact parmi les voix françaises
-  const frenchVoices = allVoices.filter(v => v.lang.startsWith('fr'));
+  console.log(`🔍 Voix françaises natives trouvées: ${nativeFrenchVoices.length}`);
 
-  for (const preferredName of MALE_VOICE_NAMES) {
-    const match = frenchVoices.find(v => 
-      v.name.toLowerCase().includes(preferredName.toLowerCase())
-    );
-    if (match) {
-      cachedMaleVoice = match;
-      console.log(`✅ Voix masculine sélectionnée: ${match.name} (${match.lang})`);
-      return match;
+  if (nativeFrenchVoices.length === 0) {
+    // Fallback: toutes les voix françaises
+    const allFrenchVoices = voices.filter(v => v.lang.startsWith('fr'));
+    if (allFrenchVoices.length > 0) {
+      cachedMaleVoice = allFrenchVoices[0];
+      return cachedMaleVoice;
     }
+    cachedMaleVoice = voices[0];
+    return cachedMaleVoice;
   }
 
-  // 2. Fallback: première voix française disponible
-  if (frenchVoices.length > 0) {
-    cachedMaleVoice = frenchVoices[0];
-    console.log(`⚠️ Fallback voix française: ${frenchVoices[0].name} (${frenchVoices[0].lang})`);
-    return frenchVoices[0];
-  }
+  // 2. Scoring pour trouver la meilleure voix masculine
+  const maleKeywords = ['paul', 'thomas', 'henri', 'bernard', 'françois', 'michel', 'pierre', 'daniel', 'jacques', 'lucas', 'antoine', 'nicolas', 'philippe', 'marc', 'arthur', 'maxime', 'mathieu', 'vincent', 'sebastien', 'olivier', 'stephane', 'eric', 'david', 'kevin', 'sylvain', 'cedric', 'fabien'];
+  const femaleKeywords = ['julie', 'marie', 'sophie', 'claire', 'florence', 'virginie', 'hortense', 'amélie', 'aurélie', 'denise', 'sylvie', 'helene', 'cecile', 'michelle', 'anne', 'elisabeth', 'valerie', 'sarah', 'laura', 'chloe', 'lea', 'manon', 'elena'];
 
-  // 3. Dernier fallback: première voix disponible
-  cachedMaleVoice = allVoices[0];
-  console.log(`⚠️ Fallback voix globale: ${allVoices[0]?.name}`);
-  return allVoices[0];
+  const scoredVoices = nativeFrenchVoices.map(voice => {
+    let score = 100;
+    const name = voice.name.toLowerCase();
+
+    // Bonus voix Microsoft premium
+    if (name.includes('microsoft')) {
+      if (name.includes('paul')) score += 180;
+      else if (name.includes('henri')) score += 160;
+    }
+
+    // Bonus voix Apple (iOS/macOS)
+    if (name.includes('thomas')) score += 150;
+
+    // Bonus pour voix masculine
+    const matchingMale = maleKeywords.find(k => name.includes(k));
+    if (matchingMale) {
+      score += 120;
+      console.log(`✨ Voix masculine identifiée: ${voice.name} (${matchingMale})`);
+    }
+
+    // Pénalité forte pour voix féminine
+    const matchingFemale = femaleKeywords.find(k => name.includes(k));
+    if (matchingFemale) {
+      score -= 150;
+    }
+
+    // Bonus qualité
+    if (name.includes('enhanced') || name.includes('premium') || name.includes('hd')) {
+      score += 40;
+    }
+    if (voice.localService) {
+      score += 50;
+    }
+
+    return { voice, score };
+  });
+
+  scoredVoices.sort((a, b) => b.score - a.score);
+
+  console.log(`🏆 Top 3 voix masculines:`);
+  scoredVoices.slice(0, 3).forEach((v, i) => {
+    console.log(`  ${i + 1}. ${v.voice.name} - Score: ${v.score}`);
+  });
+
+  cachedMaleVoice = scoredVoices[0]?.voice || nativeFrenchVoices[0];
+  return cachedMaleVoice;
+}
+
+// ============================================================
+// NETTOYAGE DU TEXTE FRANÇAIS
+// ============================================================
+
+function cleanTextForFrenchSpeech(text: string): string {
+  if (!text) return '';
+  
+  let cleaned = text;
+  
+  const corrections: Record<string, string> = {
+    'prenom': 'prénom',
+    'numero': 'numéro',
+    'telephone': 'téléphone',
+    'medecin': 'médecin',
+    'securite': 'sécurité',
+    'societe': 'société',
+    'activite': 'activité',
+    'qualite': 'qualité',
+    'vehicule': 'véhicule',
+    'email': 'courrier électronique',
+    'RDV': 'rendez-vous',
+    'TVA': 'taxe sur la valeur ajoutée',
+    'ok': 'd\'accord',
+    'OK': 'd\'accord',
+    'Mr': 'Monsieur',
+    'Mrs': 'Madame'
+  };
+
+  Object.entries(corrections).forEach(([wrong, correct]) => {
+    const regex = new RegExp(`\\b${wrong}\\b`, 'gi');
+    cleaned = cleaned.replace(regex, correct);
+  });
+
+  return cleaned;
 }
 
 // ============================================================
@@ -111,10 +168,9 @@ export const useNativeSpeechVoice = ({
       return;
     }
 
-    // Préchauffer les voix
     const loadVoices = () => {
-      speechSynthesis.getVoices();
-      findBestMaleVoice();
+      const voices = speechSynthesis.getVoices();
+      selectBestMaleFrenchVoice(voices);
     };
 
     loadVoices();
@@ -133,11 +189,15 @@ export const useNativeSpeechVoice = ({
       speechSynthesis.cancel();
       
       setIsSpeaking(true);
-      setLastMessage(text);
       
-      const voice = findBestMaleVoice();
+      // Nettoyer le texte pour une meilleure prononciation
+      const cleanedText = cleanTextForFrenchSpeech(text);
+      setLastMessage(cleanedText);
       
-      const utterance = new SpeechSynthesisUtterance(text);
+      const voices = speechSynthesis.getVoices();
+      const voice = selectBestMaleFrenchVoice(voices);
+      
+      const utterance = new SpeechSynthesisUtterance(cleanedText);
       
       if (voice) {
         utterance.voice = voice;
@@ -148,7 +208,7 @@ export const useNativeSpeechVoice = ({
       utterance.volume = VOICE_CONFIG.volume;
       utterance.lang = language;
       
-      console.log(`🔊 Lecture: "${text.substring(0, 30)}..." avec ${voice?.name || 'défaut'}`);
+      console.log(`🔊 Lecture: "${cleanedText.substring(0, 30)}..." avec ${voice?.name || 'défaut'}`);
       
       utterance.onend = () => {
         setIsSpeaking(false);
