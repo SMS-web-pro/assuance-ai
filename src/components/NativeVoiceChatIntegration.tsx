@@ -1,6 +1,6 @@
 
-import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { useElevenLabsVoice } from '@/hooks/useElevenLabsVoice';
+import React, { useEffect, useState } from 'react';
+import { useVoiceSystem } from '@/hooks/useVoiceSystem';
 import NativeVoiceControls from './NativeVoiceControls';
 
 interface NativeVoiceChatIntegrationProps {
@@ -17,10 +17,9 @@ const NativeVoiceChatIntegration: React.FC<NativeVoiceChatIntegrationProps> = ({
   isActive = false
 }) => {
   const [lastProcessedMessage, setLastProcessedMessage] = useState<string>('');
-  const lastProcessedMessageRef = useRef<string>('');
 
-  // Un seul agent vocal masculin via ElevenLabs
-  const voice = useElevenLabsVoice({
+  // Un seul agent vocal masculin pour toutes les assurances
+  const voiceSystem = useVoiceSystem({
     onTranscript: (text: string) => {
       if (isActive && text.trim()) {
         console.log(`🎤 Message vocal reçu:`, text);
@@ -29,13 +28,13 @@ const NativeVoiceChatIntegration: React.FC<NativeVoiceChatIntegrationProps> = ({
     },
     language: 'fr-FR',
     expertGender: 'male',
-    expertName: 'Conseiller AssureAI'
+    expertName: 'Agent Vocal',
+    isActive
   });
 
   // Réinitialiser le message traité quand le type d'assurance change
   useEffect(() => {
     setLastProcessedMessage('');
-    lastProcessedMessageRef.current = '';
   }, [insuranceType]);
 
   // Déclencher la lecture vocale automatique
@@ -44,27 +43,25 @@ const NativeVoiceChatIntegration: React.FC<NativeVoiceChatIntegrationProps> = ({
 
     if (lastAgentMessage && 
         lastAgentMessage.trim() && 
-        lastAgentMessage !== lastProcessedMessageRef.current &&
+        lastAgentMessage !== lastProcessedMessage &&
         lastAgentMessage.length > 10) {
       
       console.log(`🤖 Nouveau message détecté:`, lastAgentMessage.substring(0, 50) + '...');
-      lastProcessedMessageRef.current = lastAgentMessage;
       
       setTimeout(() => {
-        if (isActive) {
-          voice.speak(lastAgentMessage);
+        if (isActive && voiceSystem.speak) {
+          voiceSystem.speak(lastAgentMessage);
         }
-      }, 300);
+      }, 500);
       
       setLastProcessedMessage(lastAgentMessage);
     }
-  }, [lastAgentMessage, isActive, voice.speak]);
+  }, [lastAgentMessage, lastProcessedMessage, isActive, voiceSystem.speak]);
 
   // Réinitialiser quand l'agent devient actif
   useEffect(() => {
     if (isActive) {
       setLastProcessedMessage('');
-      lastProcessedMessageRef.current = '';
     }
   }, [isActive]);
 
@@ -74,14 +71,14 @@ const NativeVoiceChatIntegration: React.FC<NativeVoiceChatIntegrationProps> = ({
 
   return (
     <NativeVoiceControls
-      isListening={voice.isListening}
-      isSpeaking={voice.isSpeaking}
-      isSupported={voice.isSupported}
-      onStartListening={voice.startListening}
-      onStopListening={voice.stopListening}
-      onStopSpeaking={voice.stopSpeaking}
-      onReplayLastMessage={voice.replayLastMessage}
-      hasLastMessage={voice.hasLastMessage}
+      isListening={voiceSystem.isListening}
+      isSpeaking={voiceSystem.isSpeaking}
+      isSupported={voiceSystem.isSupported}
+      onStartListening={voiceSystem.startListening}
+      onStopListening={voiceSystem.stopListening}
+      onStopSpeaking={voiceSystem.stopSpeaking}
+      onReplayLastMessage={voiceSystem.replayLastMessage}
+      hasLastMessage={!!voiceSystem.lastMessage}
       onVoiceMessage={onSendMessage}
     />
   );
