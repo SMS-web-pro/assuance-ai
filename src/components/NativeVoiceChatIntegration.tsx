@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useVoiceSystem } from '@/hooks/useVoiceSystem';
 import NativeVoiceControls from './NativeVoiceControls';
 
@@ -18,59 +18,36 @@ const NativeVoiceChatIntegration: React.FC<NativeVoiceChatIntegrationProps> = ({
 }) => {
   const [lastProcessedMessage, setLastProcessedMessage] = useState<string>('');
 
-  // Mapping des types d'assurance vers les agents
-  const getAgentInfo = (type: string) => {
-    const agents = {
-      'Assurance Auto': { name: 'Marc Dubois', gender: 'male' as const },
-      'Assurance Habitation': { name: 'Sophie Martin', gender: 'female' as const },
-      'Assurance Santé': { name: 'Dr. Claire Rousseau', gender: 'female' as const },
-      'Assurance Moto': { name: 'Alex Moreau', gender: 'male' as const },
-      'Assurance Emprunteur': { name: 'Pierre Delacroix', gender: 'male' as const },
-      'Assurance Voyage': { name: 'Camille Durand', gender: 'female' as const }
-    };
-    return agents[type as keyof typeof agents] || { name: 'Assistant', gender: 'female' as const };
-  };
-
-  // useMemo pour s'assurer que agentInfo change quand insuranceType change
-  const agentInfo = useMemo(() => getAgentInfo(insuranceType), [insuranceType]);
-  
-  console.log(`🎭 Agent ${agentInfo.name} (${agentInfo.gender}) pour ${insuranceType} - ${isActive ? 'ACTIF' : 'INACTIF'} - Synthèse vocale native`);
-
-  // Utiliser le système vocal seulement si l'agent est actif
+  // Un seul agent vocal masculin pour toutes les assurances
   const voiceSystem = useVoiceSystem({
     onTranscript: (text: string) => {
       if (isActive && text.trim()) {
-        console.log(`🎤 Message vocal reçu pour ${agentInfo.name}:`, text);
+        console.log(`🎤 Message vocal reçu:`, text);
         onSendMessage(text);
       }
     },
     language: 'fr-FR',
-    expertGender: agentInfo.gender,
-    expertName: agentInfo.name,
+    expertGender: 'male',
+    expertName: 'Agent Vocal',
     isActive
   });
 
-  // Réinitialiser le message traité quand l'agent change
+  // Réinitialiser le message traité quand le type d'assurance change
   useEffect(() => {
-    console.log(`🔄 Agent changé vers ${agentInfo.name} - réinitialisation du message traité`);
     setLastProcessedMessage('');
-  }, [agentInfo.name]);
+  }, [insuranceType]);
 
-  // Déclencher la lecture vocale automatique seulement si l'agent est actif
+  // Déclencher la lecture vocale automatique
   useEffect(() => {
-    if (!isActive) {
-      console.log(`🔇 Agent ${agentInfo.name} inactif - pas de lecture vocale`);
-      return;
-    }
+    if (!isActive) return;
 
     if (lastAgentMessage && 
         lastAgentMessage.trim() && 
         lastAgentMessage !== lastProcessedMessage &&
         lastAgentMessage.length > 10) {
       
-      console.log(`🤖 Nouveau message de l'agent ${agentInfo.name} (${agentInfo.gender}) détecté (native):`, lastAgentMessage.substring(0, 50) + '...');
+      console.log(`🤖 Nouveau message détecté:`, lastAgentMessage.substring(0, 50) + '...');
       
-      // Petite pause avant la lecture pour éviter les conflits
       setTimeout(() => {
         if (isActive && voiceSystem.speak) {
           voiceSystem.speak(lastAgentMessage);
@@ -79,17 +56,15 @@ const NativeVoiceChatIntegration: React.FC<NativeVoiceChatIntegrationProps> = ({
       
       setLastProcessedMessage(lastAgentMessage);
     }
-  }, [lastAgentMessage, lastProcessedMessage, agentInfo.name, agentInfo.gender, isActive, voiceSystem.speak]);
+  }, [lastAgentMessage, lastProcessedMessage, isActive, voiceSystem.speak]);
 
-  // Réinitialiser le message de référence quand l'agent devient actif
+  // Réinitialiser quand l'agent devient actif
   useEffect(() => {
     if (isActive) {
-      console.log(`🔄 Réinitialisation du message de référence pour ${agentInfo.name} (native)`);
       setLastProcessedMessage('');
     }
-  }, [isActive, agentInfo.name]);
+  }, [isActive]);
 
-  // Si l'agent n'est pas actif, ne pas afficher les contrôles
   if (!isActive) {
     return null;
   }
