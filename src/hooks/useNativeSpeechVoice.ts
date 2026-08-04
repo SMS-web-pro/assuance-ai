@@ -199,9 +199,9 @@ export const useNativeSpeechVoice = ({
       return;
     }
 
-    // Charger les voix (elles peuvent ne pas être disponibles immédiatement)
+    // Préchauffer la liste des voix (disponibles asynchronement)
     const loadVoices = () => {
-      getFrenchVoices();
+      speechSynthesis.getVoices();
     };
 
     loadVoices();
