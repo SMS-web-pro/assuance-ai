@@ -83,54 +83,92 @@ const DEFAULT_PROFILE: AgentVoiceProfile = {
 };
 
 // ============================================================
-// SÉLECTION DE VOIX OPTIMISÉE
+// SÉLECTION DE VOIX GENRE-AWARE
 // ============================================================
 
-let cachedFrenchVoices: SpeechSynthesisVoice[] = [];
+// Noms de voix masculines connus (français et internationales)
+const MALE_VOICE_PATTERNS = [
+  'thomas', 'paul', 'henri', 'jacques', 'lucas', 'antoine', 'gerard',
+  'nicolas', 'philippe', 'michel', 'pierre', 'jean', 'marc', 'alex',
+  'denis', 'daniel', 'robert', 'yves', 'arthur', 'maxime', 'mathieu',
+  'vincent', 'sebastien', 'olivier', 'stephane', 'eric', 'francois',
+  'male', 'homme', 'homme_1', 'homme_2', 'male_1', 'male_2',
+  'david', 'kevin', 'sylvain', 'cedric', 'fabien', 'rachid', 'karim',
+  'tariq', 'mohamed', 'ahmed', 'omar', 'ali', 'hassan'
+];
 
-function getFrenchVoices(): SpeechSynthesisVoice[] {
-  if (cachedFrenchVoices.length > 0) return cachedFrenchVoices;
+// Noms de voix féminines connus
+const FEMALE_VOICE_PATTERNS = [
+  'amelie', 'marie', 'denise', 'sylvie', 'helene', 'julie', 'sophie',
+  'claire', 'camille', 'isabelle', 'nathalie', 'cecile', 'michelle',
+  'anne', 'elisabeth', 'valerie', 'sarah', 'laura', 'chloe', 'lea',
+  'manon', 'elena', 'marie-claire', 'virginie', 'brigitte', 'diane',
+  'female', 'femme', 'femme_1', 'femme_2', 'female_1', 'female_2',
+  'audrey', 'catherine', 'christine', 'damien_f', 'emilie', 'fanny',
+  'flavie', 'gaelle', 'ines', 'josephine', 'laetitia', 'morgane',
+  'nadia', 'naima', 'olivia', 'pascale', 'priscilla', 'rosalie'
+];
+
+function detectVoiceGender(voice: SpeechSynthesisVoice): 'male' | 'female' | 'unknown' {
+  const name = voice.name.toLowerCase();
   
-  const allVoices = speechSynthesis.getVoices();
-  
-  // Filtrer les voix françaises
-  const frenchVoices = allVoices.filter(v => 
-    v.lang.startsWith('fr') || v.lang === 'fr'
-  );
-  
-  if (frenchVoices.length > 0) {
-    cachedFrenchVoices = frenchVoices;
-    return frenchVoices;
+  // Vérifier les patterns masculins
+  for (const pattern of MALE_VOICE_PATTERNS) {
+    if (name.includes(pattern)) return 'male';
   }
   
-  // Fallback: toutes les voix disponibles
-  cachedFrenchVoices = allVoices;
-  return allVoices;
+  // Vérifier les patterns féminins
+  for (const pattern of FEMALE_VOICE_PATTERNS) {
+    if (name.includes(pattern)) return 'female';
+  }
+  
+  // Fallback: certains systèmes ont des voix nommées "Microsoft French (Male)" etc.
+  if (name.includes('male') || name.includes('homme') || name.includes('masculin')) return 'male';
+  if (name.includes('female') || name.includes('femme') || name.includes('feminin')) return 'female';
+  
+  return 'unknown';
 }
 
 function selectVoiceForAgent(
   agentName: string,
-  profile: AgentVoiceProfile
+  profile: AgentVoiceProfile,
+  gender: 'male' | 'female'
 ): SpeechSynthesisVoice | null {
-  const frenchVoices = getFrenchVoices();
-  if (frenchVoices.length === 0) return null;
+  const allVoices = speechSynthesis.getVoices();
+  if (allVoices.length === 0) return null;
   
-  // Essayer de trouver une voix correspondant à la langue préférée
+  // 1. Filtrer les voix françaises
+  const frenchVoices = allVoices.filter(v => 
+    v.lang.startsWith('fr') || v.lang === 'fr'
+  );
+  
+  const voicesToSearch = frenchVoices.length > 0 ? frenchVoices : allVoices;
+  
+  // 2. Pour chaque langue préférée, essayer de trouver une voix du bon genre
   for (const preferredLang of profile.preferredLangs) {
-    const matchingVoices = frenchVoices.filter(v => 
+    const langVoices = voicesToSearch.filter(v => 
       v.lang === preferredLang || v.lang.startsWith(preferredLang)
     );
     
-    if (matchingVoices.length > 0) {
-      // Utiliser l'index de préférence (mod par le nombre de voix disponibles)
-      const voiceIndex = profile.voicePreferenceIndex % matchingVoices.length;
-      return matchingVoices[voiceIndex];
+    if (langVoices.length === 0) continue;
+    
+    // Filtrer par genre
+    const genderVoices = langVoices.filter(v => detectVoiceGender(v) === gender);
+    
+    if (genderVoices.length > 0) {
+      // Retourner la première voix du bon genre pour cette langue
+      return genderVoices[0];
     }
   }
   
-  // Fallback: utiliser l'index de préférence sur toutes les voix
-  const voiceIndex = profile.voicePreferenceIndex % frenchVoices.length;
-  return frenchVoices[voiceIndex];
+  // 3. Fallback: essayer toutes les voix françaises avec le bon genre
+  const allGenderVoices = voicesToSearch.filter(v => detectVoiceGender(v) === gender);
+  if (allGenderVoices.length > 0) {
+    return allGenderVoices[0];
+  }
+  
+  // 4. Dernier fallback: première voix disponible (pitch s'occupera du genre)
+  return voicesToSearch[0] || null;
 }
 
 // ============================================================
@@ -191,9 +229,9 @@ export const useNativeSpeechVoice = ({
       setLastMessage(text);
       
       const profile = getAgentProfile();
-      const selectedVoice = selectVoiceForAgent(expertName, profile);
+      const selectedVoice = selectVoiceForAgent(expertName, profile, expertGender);
       
-      console.log(`🔊 Voice: ${selectedVoice?.name || 'default'} (${selectedVoice?.lang}) for ${expertName} - pitch:${profile.pitch} rate:${profile.rate}`);
+      console.log(`🔊 Voice: ${selectedVoice?.name || 'default'} (${selectedVoice?.lang}) [${detectVoiceGender(selectedVoice as SpeechSynthesisVoice)}] for ${expertName} (${expertGender}) - pitch:${profile.pitch} rate:${profile.rate}`);
       
       // Créer l'utterance
       const utterance = new SpeechSynthesisUtterance(text);
@@ -202,7 +240,25 @@ export const useNativeSpeechVoice = ({
         utterance.voice = selectedVoice;
       }
       
-      utterance.pitch = profile.pitch;
+      // Ajuster le pitch selon le genre pour renforcer la perception
+      // Si la voix détectée ne correspond pas au genre souhaité, ajuster le pitch
+      const detectedGender = selectedVoice ? detectVoiceGender(selectedVoice) : 'unknown';
+      let finalPitch = profile.pitch;
+      
+      if (detectedGender !== 'unknown' && detectedGender !== expertGender) {
+        // La voix n'est pas du bon genre, ajuster le pitch en conséquence
+        if (expertGender === 'male') {
+          // Voix féminine utilisée pour un homme → baisser le pitch
+          finalPitch = Math.max(0.1, profile.pitch - 0.3);
+          console.log(`🔧 Pitch ajusté vers ${finalPitch} (voix féminine pour homme)`);
+        } else {
+          // Voix masculine utilisée pour une femme → augmenter le pitch
+          finalPitch = Math.min(2.0, profile.pitch + 0.3);
+          console.log(`🔧 Pitch ajusté vers ${finalPitch} (voix masculine pour femme)`);
+        }
+      }
+      
+      utterance.pitch = finalPitch;
       utterance.rate = profile.rate;
       utterance.volume = profile.volume;
       utterance.lang = language;
@@ -226,7 +282,7 @@ export const useNativeSpeechVoice = ({
       console.error('Speak error:', error);
       setIsSpeaking(false);
     }
-  }, [expertName, language, getAgentProfile]);
+  }, [expertName, expertGender, language, getAgentProfile]);
 
   // Arrêter la lecture
   const stopSpeaking = useCallback(() => {
