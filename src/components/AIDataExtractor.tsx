@@ -23,10 +23,7 @@ const AIDataExtractor = ({ messages, insuranceType, onSaveSuccess }: AIDataExtra
   const processedRef = useRef(false);
 
   // Liste des noms de conseillers virtuels à exclure
-  const virtualConseillers = [
-    'Marc Dubois', 'Sophie Martin', 'Claire Rousseau', 'Alex Moreau', 
-    'Pierre Delacroix', 'Camille Durand', 'Dr. Claire Rousseau'
-  ];
+  const virtualConseillers = ['AssureAI', 'Conseiller AssureAI', 'Agent Vocal'];
 
   // Liste des titres à ignorer dans l'extraction du nom
   const titlesToIgnore = ['monsieur', 'madame', 'mademoiselle', 'm.', 'mme', 'mlle', 'dr', 'docteur', 'pr', 'professeur'];
