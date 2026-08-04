@@ -1,92 +1,160 @@
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { User, Car, Home, Heart, Bike, CreditCard, Plane } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 interface InteractiveAvatarProps {
   insuranceType: string;
   isActive?: boolean;
 }
 
-const InteractiveAvatar = ({ insuranceType, isActive = false }: InteractiveAvatarProps) => {
-  const getAvatarConfig = (type: string) => {
-    const configs = {
-      "Assurance Auto": {
-        name: "Marc Dubois",
-        role: "Conseiller Automobile",
-        avatar: "/lovable-uploads/71514e7c-ff12-47c3-9f19-0df886f04abe.png",
-        fallback: "MD",
-        icon: Car,
-        color: "bg-blue-100 text-blue-700 border-blue-200",
-        activeColor: "bg-blue-500 text-white"
-      },
-      "Assurance Habitation": {
-        name: "Sophie Martin",
-        role: "Conseillère Habitation",
-        avatar: "/lovable-uploads/9074a12f-55ed-4a79-8608-391e4432dec3.png",
-        fallback: "SM",
-        icon: Home,
-        color: "bg-green-100 text-green-700 border-green-200",
-        activeColor: "bg-green-500 text-white"
-      },
-      "Assurance Santé": {
-        name: "Claire Rousseau",
-        role: "Conseillère Santé",
-        avatar: "/lovable-uploads/5739b05d-801b-4035-91fc-6c7db9c29643.png",
-        fallback: "CR",
-        icon: Heart,
-        color: "bg-red-100 text-red-700 border-red-200",
-        activeColor: "bg-red-500 text-white"
-      },
-      "Assurance Moto": {
-        name: "Alex Moreau",
-        role: "Conseiller Moto",
-        avatar: "/lovable-uploads/fda4fd95-ab93-4606-baae-cb1bb587b483.png",
-        fallback: "AM",
-        icon: Bike,
-        color: "bg-orange-100 text-orange-700 border-orange-200",
-        activeColor: "bg-orange-500 text-white"
-      },
-      "Assurance Emprunteur": {
-        name: "Pierre Delacroix",
-        role: "Conseiller Emprunteur",
-        avatar: "/lovable-uploads/ca4074b7-d454-4607-91cd-f091bad68147.png",
-        fallback: "PD",
-        icon: CreditCard,
-        color: "bg-purple-100 text-purple-700 border-purple-200",
-        activeColor: "bg-purple-500 text-white"
-      },
-      "Assurance Voyage": {
-        name: "Camille Durand",
-        role: "Conseillère Voyage",
-        avatar: "/lovable-uploads/d3cece80-7607-4031-a6a6-fa5f48dc4c5e.png",
-        fallback: "CD",
-        icon: Plane,
-        color: "bg-teal-100 text-teal-700 border-teal-200",
-        activeColor: "bg-teal-500 text-white"
-      }
-    };
-    
-    return configs[type as keyof typeof configs] || {
-      name: "Conseiller",
-      role: "Expert Assurance",
-      avatar: "/lovable-uploads/71514e7c-ff12-47c3-9f19-0df886f04abe.png",
-      fallback: "AI",
-      icon: User,
-      color: "bg-gray-100 text-gray-700 border-gray-200",
-      activeColor: "bg-gray-500 text-white"
-    };
-  };
+// ============================================================
+// SVGs PROFESSIONNELS PAR TYPE D'ASSURANCE
+// ============================================================
 
-  const config = getAvatarConfig(insuranceType);
-  const IconComponent = config.icon;
+const InsuranceIcons: Record<string, { icon: React.ReactNode; color: string; gradient: string }> = {
+  "Assurance Auto": {
+    icon: (
+      <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+        <circle cx="32" cy="32" r="30" fill="url(#autoGrad)" />
+        <path d="M16 38C16 38 18 28 22 26C26 24 28 24 32 24C36 24 38 24 42 26C46 28 48 38 48 38" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M14 38H50" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
+        <circle cx="22" cy="40" r="3" stroke="white" strokeWidth="2"/>
+        <circle cx="42" cy="40" r="3" stroke="white" strokeWidth="2"/>
+        <path d="M26 28L28 32H36L38 28" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M20 34H44" stroke="white" strokeWidth="1.5" strokeLinecap="round" opacity="0.6"/>
+        <defs>
+          <linearGradient id="autoGrad" x1="0" y1="0" x2="64" y2="64">
+            <stop stopColor="#3B82F6"/>
+            <stop offset="1" stopColor="#1D4ED8"/>
+          </linearGradient>
+        </defs>
+      </svg>
+    ),
+    color: "text-blue-600",
+    gradient: "from-blue-500 to-blue-700"
+  },
+  "Assurance Habitation": {
+    icon: (
+      <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+        <circle cx="32" cy="32" r="30" fill="url(#homeGrad)" />
+        <path d="M18 32L32 20L46 32" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M22 30V44H42V30" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+        <rect x="28" y="36" width="8" height="8" rx="1" stroke="white" strokeWidth="2"/>
+        <path d="M32 36V44" stroke="white" strokeWidth="1.5"/>
+        <path d="M28 40H36" stroke="white" strokeWidth="1.5"/>
+        <defs>
+          <linearGradient id="homeGrad" x1="0" y1="0" x2="64" y2="64">
+            <stop stopColor="#22C55E"/>
+            <stop offset="1" stopColor="#15803D"/>
+          </linearGradient>
+        </defs>
+      </svg>
+    ),
+    color: "text-green-600",
+    gradient: "from-green-500 to-green-700"
+  },
+  "Assurance Santé": {
+    icon: (
+      <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+        <circle cx="32" cy="32" r="30" fill="url(#santeGrad)" />
+        <path d="M32 44C32 44 18 36 18 26C18 22 21 18 25 18C28 18 30 20 32 22C34 20 36 18 39 18C43 18 46 22 46 26C46 36 32 44 32 44Z" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M28 28H36" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
+        <path d="M32 24V32" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
+        <defs>
+          <linearGradient id="santeGrad" x1="0" y1="0" x2="64" y2="64">
+            <stop stopColor="#EF4444"/>
+            <stop offset="1" stopColor="#B91C1C"/>
+          </linearGradient>
+        </defs>
+      </svg>
+    ),
+    color: "text-red-600",
+    gradient: "from-red-500 to-red-700"
+  },
+  "Assurance Moto": {
+    icon: (
+      <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+        <circle cx="32" cy="32" r="30" fill="url(#motoGrad)" />
+        <circle cx="20" cy="40" r="5" stroke="white" strokeWidth="2.5"/>
+        <circle cx="44" cy="40" r="5" stroke="white" strokeWidth="2.5"/>
+        <path d="M25 40H39" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
+        <path d="M32 40L28 28H38L42 34" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M28 28L32 22H36" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        <circle cx="32" cy="22" r="2" fill="white"/>
+        <defs>
+          <linearGradient id="motoGrad" x1="0" y1="0" x2="64" y2="64">
+            <stop stopColor="#F97316"/>
+            <stop offset="1" stopColor="#C2410C"/>
+          </linearGradient>
+        </defs>
+      </svg>
+    ),
+    color: "text-orange-600",
+    gradient: "from-orange-500 to-orange-700"
+  },
+  "Assurance Emprunteur": {
+    icon: (
+      <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+        <circle cx="32" cy="32" r="30" fill="url(#emprGrad)" />
+        <rect x="14" y="22" width="36" height="24" rx="3" stroke="white" strokeWidth="2.5"/>
+        <path d="M14 30H50" stroke="white" strokeWidth="2.5"/>
+        <path d="M20 38H32" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+        <path d="M20 42H28" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+        <path d="M38 36L42 32L46 36" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M42 32V42" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+        <defs>
+          <linearGradient id="emprGrad" x1="0" y1="0" x2="64" y2="64">
+            <stop stopColor="#8B5CF6"/>
+            <stop offset="1" stopColor="#6D28D9"/>
+          </linearGradient>
+        </defs>
+      </svg>
+    ),
+    color: "text-purple-600",
+    gradient: "from-purple-500 to-purple-700"
+  },
+  "Assurance Voyage": {
+    icon: (
+      <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+        <circle cx="32" cy="32" r="30" fill="url(#voyageGrad)" />
+        <path d="M18 40L32 20L46 40H18Z" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M24 36H40" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+        <path d="M28 32H36" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+        <circle cx="32" cy="28" r="2" fill="white"/>
+        <defs>
+          <linearGradient id="voyageGrad" x1="0" y1="0" x2="64" y2="64">
+            <stop stopColor="#06B6D4"/>
+            <stop offset="1" stopColor="#0E7490"/>
+          </linearGradient>
+        </defs>
+      </svg>
+    ),
+    color: "text-cyan-600",
+    gradient: "from-cyan-500 to-cyan-700"
+  }
+};
+
+const InteractiveAvatar = ({ insuranceType, isActive = false }: InteractiveAvatarProps) => {
+  const config = InsuranceIcons[insuranceType] || InsuranceIcons["Assurance Auto"];
+
+  // Label court pour l'assurance
+  const getShortLabel = (type: string) => {
+    const labels: Record<string, string> = {
+      "Assurance Auto": "Auto",
+      "Assurance Habitation": "Habitation",
+      "Assurance Santé": "Santé",
+      "Assurance Moto": "Moto",
+      "Assurance Emprunteur": "Emprunteur",
+      "Assurance Voyage": "Voyage"
+    };
+    return labels[type] || "Assurance";
+  };
 
   return (
     <Card className={`relative overflow-hidden border-0 shadow-none bg-transparent transition-all duration-300 ${
       isActive ? 'ring-2 ring-blue-500/30' : ''
     }`}>
-      {/* Professional Header Section */}
+      {/* Header */}
       <div className="bg-gradient-to-r from-blue-50/80 to-indigo-50/80 border-b border-gray-100 px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-1">
@@ -95,90 +163,67 @@ const InteractiveAvatar = ({ insuranceType, isActive = false }: InteractiveAvata
           </div>
           {isActive && (
             <Badge className="bg-green-500 text-white px-2 py-1 text-xs font-medium">
-              🎙️ En conversation
+              En conversation
             </Badge>
           )}
         </div>
       </div>
 
-      {/* Main Content Section */}
+      {/* Main Content */}
       <div className="px-6 py-5 bg-white">
-        <div className="flex items-start space-x-4">
-          {/* Avatar Section */}
+        <div className="flex items-center space-x-4">
+          {/* Icon */}
           <div className="relative flex-shrink-0">
-            <div className={`relative w-16 h-16 rounded-xl overflow-hidden border-2 transition-all duration-300 ${
+            <div className={`w-16 h-16 rounded-xl overflow-hidden transition-all duration-300 ${
               isActive 
-                ? 'border-blue-500 shadow-md shadow-blue-500/20' 
-                : 'border-gray-200'
+                ? 'shadow-lg shadow-blue-500/20 scale-105' 
+                : ''
             }`}>
-              <Avatar className="w-full h-full">
-                <AvatarImage 
-                  src={config.avatar} 
-                  alt={config.name}
-                  className="object-cover w-full h-full"
-                />
-                <AvatarFallback className={`text-sm font-semibold ${isActive ? config.activeColor : config.color}`}>
-                  {config.fallback}
-                </AvatarFallback>
-              </Avatar>
-            </div>
-            
-            {/* Specialty Icon */}
-            <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-lg flex items-center justify-center ${
-              isActive ? config.activeColor : config.color
-            } border-2 border-white shadow-sm transition-all duration-300`}>
-              <IconComponent className="w-3 h-3" />
+              {config.icon}
             </div>
           </div>
           
-          {/* Information Section */}
+          {/* Info */}
           <div className="flex-1 min-w-0">
-            <div className="space-y-2">
-              <div>
-                <h3 className={`text-lg font-semibold transition-colors duration-300 ${
-                  isActive ? 'text-blue-600' : 'text-gray-900'
-                }`}>
-                  {config.name}
-                </h3>
-                <p className="text-sm text-gray-600 font-medium">
-                  {config.role}
-                </p>
-              </div>
-              
-              {/* Status and Actions */}
-              <div className="flex items-center justify-between pt-1">
+            <div className="space-y-1">
+              <h3 className={`text-lg font-semibold transition-colors duration-300 ${
+                isActive ? 'text-blue-600' : 'text-gray-900'
+              }`}>
+                {getShortLabel(insuranceType)}
+              </h3>
+              <p className="text-sm text-gray-600 font-medium">
+                Conseiller IA Expert
+              </p>
+            </div>
+            
+            {/* Status */}
+            <div className="flex items-center mt-2">
+              {!isActive ? (
+                <Badge variant="outline" className="text-xs px-2 py-1 border-green-200 text-green-700 bg-green-50">
+                  Disponible
+                </Badge>
+              ) : (
                 <div className="flex items-center space-x-2">
-                  {!isActive ? (
-                    <Badge variant="outline" className="text-xs px-2 py-1 border-green-200 text-green-700 bg-green-50">
-                      ● Disponible
-                    </Badge>
-                  ) : (
-                    <div className="flex items-center space-x-2">
-                      <div className="flex items-center space-x-1 text-xs text-gray-500">
-                        <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></div>
-                        <span className="font-medium">LIVE</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                
-                {/* Audio Visualizer */}
-                {isActive && (
-                  <div className="flex items-end space-x-0.5">
+                  <div className="flex items-center space-x-1 text-xs text-gray-500">
+                    <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></div>
+                    <span className="font-medium">LIVE</span>
+                  </div>
+                  {/* Audio Visualizer */}
+                  <div className="flex items-end space-x-0.5 ml-3">
                     <div className="w-0.5 h-3 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: "0s" }}></div>
                     <div className="w-0.5 h-4 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: "0.1s" }}></div>
                     <div className="w-0.5 h-2 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
                     <div className="w-0.5 h-5 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: "0.3s" }}></div>
                     <div className="w-0.5 h-3 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: "0.4s" }}></div>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Professional Footer */}
+      {/* Footer */}
       {isActive && (
         <div className="bg-gray-50/50 border-t border-gray-100 px-6 py-3">
           <div className="flex items-center justify-center">
