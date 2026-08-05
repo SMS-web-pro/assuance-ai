@@ -14,8 +14,8 @@ interface UseNativeSpeechVoiceProps {
 // ============================================================
 
 const VOICE_CONFIG = {
-  pitch: 1.05,     // Légèrement aigu, chaleureux
-  rate: 0.88,      // Lent pour pauses naturelles
+  pitch: 1.0,      // Neutre, naturel
+  rate: 0.92,      // Vitesse normale, professionnel
   volume: 1.0
 };
 
@@ -66,22 +66,37 @@ function cleanTextForSpeech(text: string): string {
   // 6. Convertir les symboles en mots (pour que la voix les lise correctement)
   cleaned = cleaned.replace(/€/g, ' euros');
   cleaned = cleaned.replace(/\$/g, ' dollars');
-  cleaned = cleaned.replace(/%/g, ' pour cent');
+  // Pourcentages: "15%" → "15 pour cent", "20 %" → "20 pour cent"
+  cleaned = cleaned.replace(/(\d+)\s*%/g, '$1 pour cent');
   cleaned = cleaned.replace(/&/g, ' et ');
   cleaned = cleaned.replace(/@/g, ' arobase ');
   
-  // 7. Ajouter des pauses naturelles après la ponctuation
-  cleaned = cleaned.replace(/\.\.\./g, '...');
-  cleaned = cleaned.replace(/\./g, '. ');
-  cleaned = cleaned.replace(/,/g, ', ');
-  cleaned = cleaned.replace(/;/g, '; ');
-  cleaned = cleaned.replace(/!/g, '! ');
-  cleaned = cleaned.replace(/\?/g, '? ');
+  // 7. Convertir la ponctuation en pauses naturelles (SSML-like)
+  // Points de suspension → pause longue
+  cleaned = cleaned.replace(/\.\.\./g, ' euh... ');
+  // Point → pause courte
+  cleaned = cleaned.replace(/\./g, ' . ');
+  // Virgule → micro-pause
+  cleaned = cleaned.replace(/,/g, ' , ');
+  // Point-virgule → pause moyenne
+  cleaned = cleaned.replace(/;/g, ' ; ');
+  // Point d'exclamation → pause + enthousiasme
+  cleaned = cleaned.replace(/!/g, ' ! ');
+  // Point d'interrogation → pause
+  cleaned = cleaned.replace(/\?/g, ' ? ');
+  // Deux points → pause d'attente
   cleaned = cleaned.replace(/:/g, ' : ');
-  cleaned = cleaned.replace(/-/g, ' ');
+  // Tiret → pause
+  cleaned = cleaned.replace(/ - /g, ' . ');
   
-  // 8. Nettoyer les espaces multiples
+  // 8. Nettoyer les espaces multiples et ponctuation excessive
   cleaned = cleaned.replace(/\s+/g, ' ');
+  cleaned = cleaned.replace(/ \. /g, '. ');
+  cleaned = cleaned.replace(/ , /g, ', ');
+  cleaned = cleaned.replace(/ ; /g, '; ');
+  cleaned = cleaned.replace(/ ! /g, '! ');
+  cleaned = cleaned.replace(/ \? /g, '? ');
+  cleaned = cleaned.replace(/ : /g, ': ');
   cleaned = cleaned.trim();
   
   return cleaned;
