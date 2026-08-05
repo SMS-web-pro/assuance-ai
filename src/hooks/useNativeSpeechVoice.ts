@@ -38,11 +38,19 @@ function cleanTextForSpeech(text: string): string {
   
   let cleaned = text;
   
-  // ========== ÉTAPE 1: SUPPRIMER LA SECTION FICHE RÉCAPITULATIVE ==========
+  // ========== ÉTAPE 1: GÉRER LA FICHE RÉCAPITULATIVE ==========
+  // Garder l'intro "Voici la fiche récapitulative" mais supprimer le contenu
+  // Garder la question finale "Souhaitez-vous modifier ou valider"
+  
+  // Pattern: FICHE RÉCAPITULATIVE ... (contenu à supprimer) ... question finale
+  cleaned = cleaned.replace(/(📋\s*FICHE\s*RÉCAPITULATIVE[\s\S]*?)(Souhaitez-vous[\s\S]*|\?[\s\S]*)/gi, '$2');
+  cleaned = cleaned.replace(/(FICHE\s*RÉCAPITULATIVE[\s\S]*?)(Souhaitez-vous[\s\S]*|\?[\s\S]*)/gi, '$2');
+  cleaned = cleaned.replace(/(#+\s*FICHE[\s\S]*?)(Souhaitez-vous[\s\S]*|\?[\s\S]*)/gi, '$2');
+  cleaned = cleaned.replace(/(\*\*FICHE[\s\S]*?)(Souhaitez-vous[\s\S]*|\?[\s\S]*)/gi, '$2');
+  
+  // Si pas de question trouvée, supprimer complètement
   cleaned = cleaned.replace(/📋\s*FICHE\s*RÉCAPITULATIVE[\s\S]*/gi, '');
   cleaned = cleaned.replace(/FICHE\s*RÉCAPITULATIVE[\s\S]*/gi, '');
-  cleaned = cleaned.replace(/#\s*FICHE[\s\S]*/gi, '');
-  cleaned = cleaned.replace(/\*\*FICHE[\s\S]*/gi, '');
   
   // ========== ÉTAPE 2: CONVERTIR LES SYMBOLES EN MOTS (AVANT suppression) ==========
   // Pourcentages: "15%" → "15 pour cent"
