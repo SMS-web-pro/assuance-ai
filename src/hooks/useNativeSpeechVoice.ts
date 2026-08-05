@@ -45,12 +45,14 @@ function cleanTextForSpeech(text: string): string {
   cleaned = cleaned.replace(/\*\*FICHE[\s\S]*/gi, '');
   
   // ========== ÉTAPE 2: CONVERTIR LES SYMBOLES EN MOTS (AVANT suppression) ==========
-  // Pourcentages: "15%" → "15 pour cent", "25 %" → "25 pour cent"
+  // Pourcentages: "15%" → "15 pour cent"
   cleaned = cleaned.replace(/(\d+)\s*%/g, '$1 pour cent');
   // Devises
   cleaned = cleaned.replace(/€/g, ' euros');
   cleaned = cleaned.replace(/\$/g, ' dollars');
   cleaned = cleaned.replace(/£/g, ' livres');
+  // Slash → "et" (Bonus/Malus → Bonus et Malus)
+  cleaned = cleaned.replace(/(\w+)\s*\/\s*(\w+)/g, '$1 et $2');
   // Symboles en mots
   cleaned = cleaned.replace(/&/g, ' et ');
   cleaned = cleaned.replace(/@/g, ' arobase ');
@@ -85,8 +87,12 @@ function cleanTextForSpeech(text: string): string {
   cleaned = cleaned.replace(/[#@\^=<>{}[\]\\|~`]/g, '');
   
   // ========== ÉTAPE 8: PONCTUATION NATURELLE ==========
+  // Points de suspension → pause
   cleaned = cleaned.replace(/\.\.\./g, ' . ');
   cleaned = cleaned.replace(/\.\./g, ' . ');
+  // Nouvelles lignes → pauses (les bullet points, listes, etc.)
+  cleaned = cleaned.replace(/\n\s*\n/g, ' . ');
+  cleaned = cleaned.replace(/\n/g, ' , ');
   
   // ========== ÉTAPE 9: NETTOYAGE FINAL ==========
   cleaned = cleaned.replace(/\s+/g, ' ');
