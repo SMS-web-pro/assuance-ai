@@ -10,44 +10,79 @@ interface UseNativeSpeechVoiceProps {
 }
 
 // ============================================================
-// CONFIGURATION VOCALE - VOIX FÉMININE PROFESSIONNELLE
+// CONFIGURATION VOCALE - VOIX FÉMININE NATURELLE
 // ============================================================
 
 const VOICE_CONFIG = {
-  pitch: 1.0,      // Neutre, naturel
-  rate: 0.95,      // Légèrement lent pour clarté
+  pitch: 1.05,     // Légèrement aigu, chaleureux
+  rate: 0.88,      // Lent pour pauses naturelles
   volume: 1.0
 };
 
 // Patterns de voix féminines françaises (triées par qualité)
 const FEMALE_VOICE_NAMES = [
-  // Voix Microsoft de qualité (Windows/Edge)
   'Microsoft Marie - French (France)',
   'Microsoft Hortense - French (France)',
-  'Marie',
-  'Hortense',
-  'Denise',
-  'Eloise',
-  'Sophie',
-  'Camille',
-  'Julie',
-  'Amelie',
-  'Manon',
-  'Lea',
-  'Chloe',
-  'Sarah',
-  'Laura',
-  // Google TTS (Android)
-  'Google français',
-  'Google France French',
-  'Google français (fr-FR)',
-  // iOS
-  'Marie (fr-FR)',
-  'Thomas (fr-FR)', // fallback iOS - voix neutre
-  // Generic
-  'french female',
-  'français'
+  'Marie', 'Hortense', 'Denise', 'Eloise', 'Sophie',
+  'Camille', 'Julie', 'Amelie', 'Manon', 'Lea', 'Chloe',
+  'Google français', 'Google France French', 'Google français (fr-FR)',
+  'Marie (fr-FR)', 'french female', 'français'
 ];
+
+// ============================================================
+// NETTOYAGE DU TEXTE POUR SYNTHÈSE VOCALE
+// ============================================================
+
+function cleanTextForSpeech(text: string): string {
+  if (!text) return '';
+  
+  let cleaned = text;
+  
+  // 1. Supprimer la section FICHE RÉCAPITULATIVE (ne pas la lire)
+  // Chercher "📋" ou "FICHE RÉCAPITULATIVE" et supprimer jusqu'à la fin ou jusqu'au prochain titre
+  cleaned = cleaned.replace(/📋\s*FICHE RÉCAPITULATIVE[\s\S]*/gi, '');
+  
+  // 2. Supprimer les blocs de code
+  cleaned = cleaned.replace(/```[\s\S]*?```/g, '');
+  cleaned = cleaned.replace(/`[^`]*`/g, '');
+  
+  // 3. Supprimer les emojis et symboles visuels
+  cleaned = cleaned.replace(/[📋📊✅❌⚠️🔧💡🎯📌🔍📊🎙️🔴🟢🟡🔵]/g, '');
+  
+  // 4. Supprimer les marqueurs markdown
+  cleaned = cleaned.replace(/\*\*\*/g, '');
+  cleaned = cleaned.replace(/\*\*/g, '');
+  cleaned = cleaned.replace(/\*/g, '');
+  cleaned = cleaned.replace(/___/g, '');
+  cleaned = cleaned.replace(/__/g, '');
+  cleaned = cleaned.replace(/_/g, '');
+  
+  // 5. Supprimer les symboles techniques
+  cleaned = cleaned.replace(/[#@$%^&=<>{}[\]\\|~`]/g, '');
+  
+  // 6. Convertir les symboles en mots (pour que la voix les lise correctement)
+  cleaned = cleaned.replace(/€/g, ' euros');
+  cleaned = cleaned.replace(/\$/g, ' dollars');
+  cleaned = cleaned.replace(/%/g, ' pour cent');
+  cleaned = cleaned.replace(/&/g, ' et ');
+  cleaned = cleaned.replace(/@/g, ' arobase ');
+  
+  // 7. Ajouter des pauses naturelles après la ponctuation
+  cleaned = cleaned.replace(/\.\.\./g, '...');
+  cleaned = cleaned.replace(/\./g, '. ');
+  cleaned = cleaned.replace(/,/g, ', ');
+  cleaned = cleaned.replace(/;/g, '; ');
+  cleaned = cleaned.replace(/!/g, '! ');
+  cleaned = cleaned.replace(/\?/g, '? ');
+  cleaned = cleaned.replace(/:/g, ' : ');
+  cleaned = cleaned.replace(/-/g, ' ');
+  
+  // 8. Nettoyer les espaces multiples
+  cleaned = cleaned.replace(/\s+/g, ' ');
+  cleaned = cleaned.trim();
+  
+  return cleaned;
+}
 
 // ============================================================
 // SÉLECTION DE LA MEILLEURE VOIX
@@ -156,11 +191,22 @@ export const useNativeSpeechVoice = ({
       speechSynthesis.cancel();
       
       setIsSpeaking(true);
-      setLastMessage(text);
+      
+      // Nettoyer le texte avant de lire
+      const cleanedText = cleanTextForSpeech(text);
+      
+      // Si le texte est vide après nettoyage, ne rien dire
+      if (!cleanedText.trim()) {
+        setIsSpeaking(false);
+        onEnd?.();
+        return;
+      }
+      
+      setLastMessage(cleanedText);
       
       const voice = findBestVoice();
       
-      const utterance = new SpeechSynthesisUtterance(text);
+      const utterance = new SpeechSynthesisUtterance(cleanedText);
       
       if (voice) {
         utterance.voice = voice;
