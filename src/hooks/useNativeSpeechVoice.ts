@@ -38,65 +38,77 @@ function cleanTextForSpeech(text: string): string {
   
   let cleaned = text;
   
-  // 1. Supprimer TOUTE la section FICHE RÉCAPITULATIVE (ne pas la lire)
-  // Catch toutes les variantes: avec/sans emoji, markdown, majuscules, etc.
+  // ========== ÉTAPE 1: SUPPRIMER LA SECTION FICHE RÉCAPITULATIVE ==========
+  // Tout ce qui vient après "FICHE RÉCAPITULATIVE" ne doit pas être lu
   cleaned = cleaned.replace(/📋\s*FICHE\s*RÉCAPITULATIVE[\s\S]*/gi, '');
   cleaned = cleaned.replace(/FICHE\s*RÉCAPITULATIVE[\s\S]*/gi, '');
   cleaned = cleaned.replace(/#\s*FICHE[\s\S]*/gi, '');
   cleaned = cleaned.replace(/\*\*FICHE[\s\S]*/gi, '');
   
-  // 2. Supprimer les blocs de code
+  // ========== ÉTAPE 2: SUPPRIMER LES BLOCS DE CODE ==========
   cleaned = cleaned.replace(/```[\s\S]*?```/g, '');
   cleaned = cleaned.replace(/`[^`]*`/g, '');
   
-  // 3. Supprimer les emojis et symboles visuels
-  cleaned = cleaned.replace(/[📋📊✅❌⚠️🔧💡🎯📌🔍📊🎙️🔴🟢🟡🔵]/g, '');
-  
-  // 4. Supprimer les marqueurs markdown
+  // ========== ÉTAPE 3: SUPPRIMER MARKDOWN ==========
   cleaned = cleaned.replace(/\*\*\*/g, '');
   cleaned = cleaned.replace(/\*\*/g, '');
   cleaned = cleaned.replace(/\*/g, '');
   cleaned = cleaned.replace(/___/g, '');
   cleaned = cleaned.replace(/__/g, '');
   cleaned = cleaned.replace(/_/g, '');
+  // Titres markdown
+  cleaned = cleaned.replace(/^#{1,6}\s/gm, '');
   
-  // 5. Supprimer les symboles techniques
-  cleaned = cleaned.replace(/[#@$%^&=<>{}[\]\\|~`]/g, '');
+  // ========== ÉTAPE 4: SUPPRIMER TOUT LES SYMBOLES ==========
+  // Lignes horizontales, tirets multiples, etc.
+  cleaned = cleaned.replace(/---+/g, '');
+  cleaned = cleaned.replace(/___+/g, '');
+  cleaned = cleaned.replace(/\*\*\*+/g, '');
+  // Tous les symboles restants
+  cleaned = cleaned.replace(/[#@\$%\^&=<>{}[\]\\|~`]/g, '');
   
-  // 6. Convertir les symboles en mots (pour que la voix les lise correctement)
+  // ========== ÉTAPE 5: SUPPRIMER LES EMOJIS ==========
+  cleaned = cleaned.replace(/[\u{1F600}-\u{1F64F}]/gu, '');
+  cleaned = cleaned.replace(/[\u{1F300}-\u{1F5FF}]/gu, '');
+  cleaned = cleaned.replace(/[\u{1F680}-\u{1F6FF}]/gu, '');
+  cleaned = cleaned.replace(/[\u{1F1E0}-\u{1F1FF}]/gu, '');
+  cleaned = cleaned.replace(/[\u{2600}-\u{26FF}]/gu, '');
+  cleaned = cleaned.replace(/[\u{2700}-\u{27BF}]/gu, '');
+  cleaned = cleaned.replace(/[\u{FE00}-\u{FE0F}]/gu, '');
+  cleaned = cleaned.replace(/[\u{200D}]/gu, '');
+  
+  // ========== ÉTAPE 6: CONVERTIR LES SYMBOLES EN MOTS ==========
+  // Pourcentages: "15%" → "15 pour cent"
+  cleaned = cleaned.replace(/(\d+)\s*%/g, '$1 pour cent');
+  // Devises
   cleaned = cleaned.replace(/€/g, ' euros');
   cleaned = cleaned.replace(/\$/g, ' dollars');
-  // Pourcentages: "15%" → "15 pour cent", "20 %" → "20 pour cent"
-  cleaned = cleaned.replace(/(\d+)\s*%/g, '$1 pour cent');
+  cleaned = cleaned.replace(/£/g, ' livres');
+  // Symboles restants
   cleaned = cleaned.replace(/&/g, ' et ');
   cleaned = cleaned.replace(/@/g, ' arobase ');
+  cleaned = cleaned.replace(/\+/g, ' plus ');
   
-  // 7. Convertir la ponctuation en pauses naturelles (SSML-like)
-  // Points de suspension → pause longue
-  cleaned = cleaned.replace(/\.\.\./g, ' euh... ');
-  // Point → pause courte
-  cleaned = cleaned.replace(/\./g, ' . ');
-  // Virgule → micro-pause
-  cleaned = cleaned.replace(/,/g, ' , ');
-  // Point-virgule → pause moyenne
-  cleaned = cleaned.replace(/;/g, ' ; ');
-  // Point d'exclamation → pause + enthousiasme
-  cleaned = cleaned.replace(/!/g, ' ! ');
-  // Point d'interrogation → pause
-  cleaned = cleaned.replace(/\?/g, ' ? ');
-  // Deux points → pause d'attente
-  cleaned = cleaned.replace(/:/g, ' : ');
-  // Tiret → pause
-  cleaned = cleaned.replace(/ - /g, ' . ');
+  // ========== ÉTAPE 7: PONCTUATION NATURELLE ==========
+  // Pas de "euh..." artificiel - laisser la voix gérer
+  cleaned = cleaned.replace(/\.\.\./g, ' . ');
+  cleaned = cleaned.replace(/\.\./g, ' . ');
   
-  // 8. Nettoyer les espaces multiples et ponctuation excessive
+  // ========== ÉTAPE 8: NETTOYAGE FINAL ==========
+  // Espaces multiples
   cleaned = cleaned.replace(/\s+/g, ' ');
-  cleaned = cleaned.replace(/ \. /g, '. ');
-  cleaned = cleaned.replace(/ , /g, ', ');
-  cleaned = cleaned.replace(/ ; /g, '; ');
-  cleaned = cleaned.replace(/ ! /g, '! ');
-  cleaned = cleaned.replace(/ \? /g, '? ');
-  cleaned = cleaned.replace(/ : /g, ': ');
+  // Ponctuation propre
+  cleaned = cleaned.replace(/ \./g, '.');
+  cleaned = cleaned.replace(/ ,/g, ',');
+  cleaned = cleaned.replace(/ ;/g, ';');
+  cleaned = cleaned.replace(/ !/g, '!');
+  cleaned = cleaned.replace(/ \?/g, '?');
+  cleaned = cleaned.replace(/ :/g, ':');
+  // Tirets isolés
+  cleaned = cleaned.replace(/ - /g, ' ');
+  cleaned = cleaned.replace(/ -/g, ' ');
+  cleaned = cleaned.replace(/- /g, ' ');
+  // Nettoyage final
   cleaned = cleaned.trim();
   
   return cleaned;
