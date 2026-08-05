@@ -38,9 +38,12 @@ function cleanTextForSpeech(text: string): string {
   
   let cleaned = text;
   
-  // 1. Supprimer la section FICHE RÉCAPITULATIVE (ne pas la lire)
-  // Chercher "📋" ou "FICHE RÉCAPITULATIVE" et supprimer jusqu'à la fin ou jusqu'au prochain titre
-  cleaned = cleaned.replace(/📋\s*FICHE RÉCAPITULATIVE[\s\S]*/gi, '');
+  // 1. Supprimer TOUTE la section FICHE RÉCAPITULATIVE (ne pas la lire)
+  // Catch toutes les variantes: avec/sans emoji, markdown, majuscules, etc.
+  cleaned = cleaned.replace(/📋\s*FICHE\s*RÉCAPITULATIVE[\s\S]*/gi, '');
+  cleaned = cleaned.replace(/FICHE\s*RÉCAPITULATIVE[\s\S]*/gi, '');
+  cleaned = cleaned.replace(/#\s*FICHE[\s\S]*/gi, '');
+  cleaned = cleaned.replace(/\*\*FICHE[\s\S]*/gi, '');
   
   // 2. Supprimer les blocs de code
   cleaned = cleaned.replace(/```[\s\S]*?```/g, '');
